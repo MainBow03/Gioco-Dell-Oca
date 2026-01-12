@@ -127,7 +127,7 @@
         { name: "Po", img: "https://i.pinimg.com/1200x/fb/99/a5/fb99a5c7ce5b313ed1c4e71ee0260a9b.jpg", dice: { name: "Dado Guerriero", vals: [1, 2, 5, 7], color: "bg-red-600", text: "text-red-700", desc: "La via del guerriero è essenziale." } }
         ].map((c, i) => ({ ...c, id: i }));
 
-        const BOSS_DICE_VALS = [3, 4, 5, 6, 7, 8];
+        const BOSS_DICE_VALS = [-5, -2, 5, 6, 7, 8];
 
         const playSound = (type) => {
             try {
@@ -968,7 +968,8 @@
                                     updates.players = tempPlayers;
                                 }
 
-                                updates.currentTurn = 0;
+                                // FIX: Instead of currentTurn = 0, find first valid player
+                                updates.currentTurn = getNextTurn(tempPlayers, tempPlayers.length - 1);
                             } else {
                                 updates.currentTurn = nextTurn;
                             }
@@ -1006,7 +1007,9 @@
                                 } else {
                                     updates.lastAction = `ROUND ${updates.round}: Il virus dorme...`;
                                 }
-                                updates.currentTurn = 0;
+                                
+                                // FIX: Instead of currentTurn = 0, find first valid player
+                                updates.currentTurn = getNextTurn(tempPlayers, tempPlayers.length - 1);
                             } else {
                                 updates.currentTurn = nextTurn;
                             }
