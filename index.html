@@ -727,9 +727,22 @@
                     let log = `${player.name} è alla ${finalPos}.`;
                     if (collisionLog.length > 0) log += " " + collisionLog.join(" ");
 
+                    // *** LAVA CHECK ON ARRIVAL (PRE-SPECIAL) ***
+                    if (currentRoom.gameMode === 'lava' && currentRoom.lavaTiles && currentRoom.lavaTiles.includes(finalPos)) {
+                        tempPlayers[currentPlayerIdx].lives -= 1;
+                        log += " 🔥 LAVA! -1 VITA!";
+                        playSound('fire');
+                        if (tempPlayers[currentPlayerIdx].lives <= 0) {
+                            tempPlayers[currentPlayerIdx].isDead = true;
+                            tempPlayers[currentPlayerIdx].finished = true; // Mark finished to skip turn
+                            log += " ELIMINATO!";
+                            playSound('skull');
+                        }
+                    }
+
                     let special = effectiveSpecials[finalPos];
                     let extraTurns = 0;
-                    if (special) {
+                    if (special && !tempPlayers[currentPlayerIdx].isDead) {
                         log += ` ${special.name}!`; 
                         if (special.type === 'BOOST') { await sleep(500); finalPos += special.val; if (finalPos < 0) finalPos = 0; if (finalPos > config.max) finalPos = config.max; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
                         else if (special.type === 'JUMP' || special.type === 'BACK' || special.type === 'RESTART') { await sleep(800); finalPos = special.val || 0; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
@@ -789,6 +802,7 @@
                                 setDecisionMode(true);
                                 setTargetSelectionMode(null);
                                 tempPlayers[currentPlayerIdx].position = finalPos;
+                                tempPlayers[currentPlayerIdx].pendingTarget = null; // FIX: Clear pendingTarget immediately to prevent loop
                                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` });
                                 setIsMoving(false); return; 
                             }
@@ -796,15 +810,17 @@
                         if (special.type === 'WAIT') extraTurns = special.turns;
                     }
 
-                    // CHECK LAVA DAMAGE
-                    if (currentRoom.gameMode === 'lava' && currentRoom.lavaTiles && currentRoom.lavaTiles.includes(finalPos)) {
+                    // *** LAVA CHECK ON DESTINATION (POST-SPECIAL) ***
+                    // We only apply damage if we MOVED to a new tile (finalPos !== targetPos)
+                    // This prevents double damage on the same tile.
+                    if (finalPos !== targetPos && !tempPlayers[currentPlayerIdx].isDead && currentRoom.gameMode === 'lava' && currentRoom.lavaTiles && currentRoom.lavaTiles.includes(finalPos)) {
                         tempPlayers[currentPlayerIdx].lives -= 1;
-                        log += " È SULLA LAVA! -1 VITA!";
+                        log += " 🔥 ATTERRATO SU LAVA! -1 VITA!";
                         playSound('fire');
                         if (tempPlayers[currentPlayerIdx].lives <= 0) {
                             tempPlayers[currentPlayerIdx].isDead = true;
-                            tempPlayers[currentPlayerIdx].finished = true; // Mark finished to skip turn
-                            log += " È STATO ELIMINATO!";
+                            tempPlayers[currentPlayerIdx].finished = true; 
+                            log += " ELIMINATO!";
                             playSound('skull');
                         }
                     }
@@ -1019,11 +1035,22 @@
                 const playerIdx = currentRoom.currentTurn;
                 const player = currentRoom.players[playerIdx];
                 if (option.id === 'target_back_4' || option.id === 'curse') { setTargetSelectionMode(option.id); return; }
+                
                 let updatedPlayers = [...currentRoom.players];
+                // FIX: Clear pendingTarget to prevent loop on next turn
+                updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
+
                 if (option.id === 'all_1_me_3') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished) return p; let move = (p.id === player.id) ? 3 : 1; return { ...p, position: Math.min(p.position + move, 60) }; }); }
                 else if (option.id === 'teleport') { const others = updatedPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId)); if (others.length > 0) { const target = others[Math.floor(Math.random() * others.length)]; updatedPlayers[playerIdx].position = target.position; playSound('teleport'); } }
-                else if (option.id === 'reroll') { setDecisionMode(false); setDecisionOptions([]); return; }
+                else if (option.id === 'reroll') { 
+                    // Reroll: Clear pending target, keep turn, save to DB
+                    setDecisionMode(false); 
+                    setDecisionOptions([]); 
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} tira di nuovo!` });
+                    return; 
+                }
                 else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 4, 60); }
+                
                 setDecisionMode(false); setDecisionOptions([]);
                 const nextTurn = getNextTurn(updatedPlayers, playerIdx);
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, currentTurn: nextTurn, lastAction: `${player.name} usa ${option.name}!` });
@@ -1042,6 +1069,10 @@
                 const playerIdx = currentRoom.currentTurn;
                 if (targetIdx === -1 || targetIdx === playerIdx) return;
                 let updatedPlayers = [...currentRoom.players];
+                
+                // FIX: Clear pendingTarget for the current player
+                updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
+
                 if (targetSelectionMode === 'target_back_4') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 4); playSound('punch'); }
                 else if (targetSelectionMode === 'curse') { updatedPlayers[targetIdx].activeCurse = true; playSound('curse'); }
                 setTargetSelectionMode(null); setDecisionMode(false); setDecisionOptions([]);
@@ -1085,7 +1116,11 @@
                     let updated = [...currentRoom.players];
                     updated[playerIdx].activeCurse = false;
                     if (currentRoom.gameMode === 'gem_hunt') { val = Math.abs(val); setDirectionChoice({ val }); setIsRolling(false); return; }
-                    let newPos = Math.max(0, Math.min(player.position + val, 60));
+                    
+                    // FIX BUG 1: Use specific max value depending on game mode
+                    const config = currentRoom.gameMode === 'elimination' ? ELIM_MAP : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP : CLASSIC_MAP);
+                    let newPos = Math.max(0, Math.min(player.position + val, config.max));
+                    
                     updated[playerIdx].pendingTarget = newPos;
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}!` });
                 } catch (e) { handleError(e); }
