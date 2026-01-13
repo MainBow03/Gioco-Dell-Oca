@@ -40,6 +40,14 @@
                 #1e1b4b 20px
             );
         }
+        /* Custom scrollbar for color picker */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -52,7 +60,7 @@
             Dice5, LogOut, ArrowRight, Skull, RefreshCcw, 
             ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
             Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
-            Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move
+            Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind
         } from 'lucide-react';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -96,6 +104,14 @@
             { name: "Giallo", bg: "bg-yellow-500", border: "border-yellow-500", text: "text-yellow-600", light: "bg-yellow-50", ring: "ring-yellow-500" }
         ];
 
+        // 20 Colori per la modalità Tiles
+        const PAINT_COLORS = [
+            "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", 
+            "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", 
+            "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", 
+            "#ec4899", "#f43f5e", "#78716c", "#57534e", "#1e293b"
+        ];
+
         const ROSTER = [
         { name: "Marinette", img: "https://i.pinimg.com/736x/b8/74/55/b87455575cd069609007a639c9490293.jpg", dice: { name: "Dado Fortunato", vals: [0, 2, 2, 4, 4, 5], color: "bg-pink-500", text: "text-pink-500", desc: "Niente rischi, solo progressi costanti." } },
         { name: "Adrien", img: "https://i.pinimg.com/1200x/5c/2d/c7/5c2dc740ed2fe906b6afaf1320bf4273.jpg", dice: { name: "Dado Cataclisma", vals: [-2, -1, 3, 3, 6, 9], color: "bg-gray-800", text: "text-gray-800", desc: "Estremi pericolosi: o voli o crolli." } },
@@ -124,10 +140,15 @@
         { name: "Jake (DC)", img: "https://i.pinimg.com/736x/bc/a0/76/bca0765eaa0f1e88b0070a5b92c22de7.jpg", dice: { name: "Dado Twink", vals: [-1, 0, 1, 4, 9, 9], color: "bg-pink-400", text: "text-pink-500", desc: "Delicato ma capace di esplodere." } },
         { name: "Tom", img: "https://i.pinimg.com/736x/fb/da/0a/fbda0a5f373f173a17726271e423f953.jpg", dice: { name: "Dado Spia", vals: [1, 2, 4, 4, 6, 7], color: "bg-slate-700", text: "text-slate-700", desc: "Calcolato, preciso e letale." } },
         { name: "Gabby", img: "https://i.pinimg.com/736x/a2/14/9c/a2149c917938c8460be43aca06945173.jpg", dice: { name: "Dado Schizo", vals: [-3, -2, 4, 4, 4, 5], color: "bg-purple-500", text: "text-purple-600", desc: "Caos totale: retromarcia o scatto." } },
-        { name: "Po", img: "https://i.pinimg.com/1200x/fb/99/a5/fb99a5c7ce5b313ed1c4e71ee0260a9b.jpg", dice: { name: "Dado Guerriero", vals: [1, 2, 5, 7], color: "bg-red-600", text: "text-red-700", desc: "La via del guerriero è essenziale." } }
+        { name: "Po", img: "https://i.pinimg.com/1200x/fb/99/a5/fb99a5c7ce5b313ed1c4e71ee0260a9b.jpg", dice: { name: "Dado Guerriero", vals: [1, 2, 5, 7], color: "bg-red-600", text: "text-red-700", desc: "La via del guerriero è essenziale." } },
+        { name: "Francine", img: "https://i.pinimg.com/736x/b3/b5/f6/b3b5f6849a52b4daed92424650a98f7f.jpg", dice: { name: "Dado Baddie", vals: [-1, -1, 4, 4, 4, 4], color: "bg-rose-500", text: "text-rose-500", desc: "Cattiva ma con stile." } },
+        { name: "Carrie", img: "https://i.pinimg.com/736x/b7/4b/cf/b74bcfa3fe7236c9ba3ab7af9a34bcea.jpg", dice: { name: "Dado Fantasma", vals: [-3, 3, 3, 3, 4, 5], color: "bg-zinc-500", text: "text-zinc-500", desc: "Spettrale e imprevedibile." } },
+        { name: "Gommarosa", img: "https://i.pinimg.com/1200x/08/55/4e/08554e6bf4a3f93069db83fa67ca11c7.jpg", dice: { name: "Dado Gommoso", vals: [2, 2, 2, 4, 4, 5], color: "bg-pink-400", text: "text-pink-400", desc: "Dolce e appiccicosa." } },
+        { name: "Marceline", img: "https://i.pinimg.com/1200x/bd/81/67/bd816740842afa6514f3246c38a32bd8.jpg", dice: { name: "Dado Vampirico", vals: [-3, 4, 8, -3, 4, 8], color: "bg-slate-900", text: "text-slate-800", desc: "Morsi potenti o ritiro nell'ombra." } },
+        { name: "Toph", img: "https://i.pinimg.com/736x/cf/26/2e/cf262e1acee23fe4dadd852dda3a71d1.jpg", dice: { name: "Dado Cieco", vals: [-3, -3, -1, 3, 5, 13], color: "bg-stone-600", text: "text-stone-700", desc: "Non vede, ma quando colpisce fa male." } }
         ].map((c, i) => ({ ...c, id: i }));
 
-        const BOSS_DICE_VALS = [-5, -2, 5, 6, 7, 8];
+        const BOSS_DICE_VALS = [3, 4, 5, 6, 7, 8];
 
         const playSound = (type) => {
             try {
@@ -149,6 +170,7 @@
                 else if (type === 'fire') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
                 else if (type === 'boss_hit') { osc.type = 'square'; osc.frequency.setValueAtTime(80, now); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
                 else if (type === 'suck') { osc.type = 'sine'; osc.frequency.setValueAtTime(50, now); osc.frequency.linearRampToValueAtTime(0, now + 1); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 1); osc.start(now); osc.stop(now + 1); }
+                else if (type === 'tile') { osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
             } catch (e) { console.error(e); }
         };
 
@@ -167,7 +189,9 @@
             Skull: <Skull />,
             ArrowRight: <ArrowRight />,
             Gavel: <Gavel />,
-            ArrowLeftRight: <ArrowLeftRight />
+            ArrowLeftRight: <ArrowLeftRight />,
+            Siren: <Siren />,
+            Rewind: <Rewind />
         };
 
         const getIcon = (icon) => {
@@ -206,6 +230,26 @@
         }
         };
 
+        const REVERSE_MAP = {
+            max: 0,
+            specials: {
+                ...CLASSIC_MAP.specials,
+                // Override descriptions to make sense for reverse logic (Goal: 0)
+                6: { ...CLASSIC_MAP.specials[6], desc: "Il ponte ti porta alla 12... più vicino al traguardo!" },
+                42: { ...CLASSIC_MAP.specials[42], name: "Scorciatoia", icon: <Rewind/>, desc: "Scorciatoia Labirinto! Salti alla 30 (più vicino allo zero)!" },
+                58: { ...CLASSIC_MAP.specials[58], desc: "Lo scheletro ti manda allo START (0)! VITTORIA ISTANTANEA?!" },
+                5: { ...CLASSIC_MAP.specials[5], name: 'Malus +2', icon: <ArrowUp/>, desc: "Oh no! Ti allontani di 2 caselle dallo zero!" },
+                9: { ...CLASSIC_MAP.specials[9], name: 'Malus +3', icon: <Zap/>, desc: "Disastro! Corri indietro verso la 60!" },
+                11: { ...CLASSIC_MAP.specials[11], name: 'Malus +4', icon: <Zap/>, desc: "Turbo al contrario! +4 caselle!" },
+                14: { ...CLASSIC_MAP.specials[14], name: 'Malus +2', icon: <ArrowUp/>, desc: "Indietro di 2!" },
+                23: { ...CLASSIC_MAP.specials[23], name: 'Bonus -2', icon: <ArrowDown/>, desc: "Scivolata fortunata! Ti avvicini allo zero di 2!" },
+                27: { ...CLASSIC_MAP.specials[27], name: 'Bonus -1', icon: <ArrowDown/>, desc: "Vento a favore! -1 casella!" },
+                36: { ...CLASSIC_MAP.specials[36], name: 'Malus +3', icon: <Zap/>, desc: "Sprint sbagliato! +3 caselle!" },
+                50: { ...CLASSIC_MAP.specials[50], name: 'Bonus -2', icon: <ArrowDown/>, desc: "Ottimo! -2 caselle!" },
+                56: { ...CLASSIC_MAP.specials[56], name: 'Bonus -3', icon: <ArrowDown/>, desc: "Evvai! Scivoli verso la vittoria!" },
+            }
+        };
+
         const ELIM_MAP = {
         max: 34,
         specials: {
@@ -237,6 +281,12 @@
                 45: { type: 'DOUBLE', name: 'Raddoppia', icon: <ChevronsUp />, desc: "X2 Movimento" }
             }
         };
+        
+        // Tiles Map has no specials and circular logic handled in movement
+        const TILES_MAP = {
+            max: 60,
+            specials: {} // No specials in tiles mode, just painting
+        };
 
         const DECISION_POOL = [
             { id: 'all_1_me_3', name: 'Leadership', desc: "Tutti avanzano di 1, tu di 3.", icon: <Users/> },
@@ -255,29 +305,66 @@
         );
         };
 
-        const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCellClick, onInfoClick, gems, infected, isTargetSelection, lavaTiles, blackHolePos, bossTargetUid }) => {
+        const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCellClick, onInfoClick, gems, infected, isTargetSelection, lavaTiles, blackHolePos, bossTargetUid, tileOwnerColor, isValidMoveTarget, isTilesMode, isReverse }) => {
             let bgClass = "bg-slate-100";
             let borderClass = "border-slate-300";
             let cursorClass = "cursor-pointer"; 
             let highlightClass = "";
+            let customStyle = {};
+
             const hasGem = gems && gems.includes(num);
             const isLava = lavaTiles && lavaTiles.includes(num);
             const isBlackHole = blackHolePos !== undefined && num <= blackHolePos;
 
-            if (num === 0) { bgClass = "bg-green-200"; borderClass = "border-green-400"; }
-            else if (num === (isElimination ? 34 : (special && !special.max ? 60 : 50))) { bgClass = "bg-yellow-200"; borderClass = "border-yellow-400"; }
-            else if (special) {
-                if (special.type === 'BOOST' && special.val > 0 || special.type === 'JUMP' || special.type === 'DOUBLE') { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; }
-                else if ((special.type === 'BOOST' && special.val < 0) || special.type === 'BACK' || special.type === 'RESTART') { bgClass = "bg-red-100"; borderClass = "border-red-300"; }
-                else if (special.type === 'WAIT') { bgClass = "bg-slate-300"; borderClass = "border-slate-500"; }
-                else if (special.type === 'TAIL' || special.type === 'TELEPORT' || special.type === 'SWITCH') { bgClass = "bg-purple-200"; borderClass = "border-purple-400"; }
-                else if (special.type === 'DECISION') { bgClass = "bg-amber-100"; borderClass = "border-amber-400"; }
+            // Tile Ownership Logic
+            if (tileOwnerColor) {
+                customStyle = { backgroundColor: tileOwnerColor, borderColor: 'white' };
+                // Lighten the text so numbers are visible on dark colors
+                bgClass = "text-white shadow-inner";
+            }
+
+            // Normal start/end logic only if NOT in Tiles mode
+            if (num === 0 && !tileOwnerColor && !isTilesMode) { 
+                bgClass = isReverse ? "bg-yellow-200" : "bg-green-200"; 
+                borderClass = isReverse ? "border-yellow-400" : "border-green-400"; 
+            }
+            else if (num === (isElimination ? 34 : (special && !special.max && special.max !== 0 ? 60 : 50)) && !tileOwnerColor && !isTilesMode) { 
+                 // Fix: 60 for classic/reverse map
+                 if (num === 60) {
+                     bgClass = isReverse ? "bg-green-200" : "bg-yellow-200"; 
+                     borderClass = isReverse ? "border-green-400" : "border-yellow-400";
+                 } else {
+                    bgClass = "bg-yellow-200"; borderClass = "border-yellow-400"; 
+                 }
+            }
+            else if (special && !tileOwnerColor) {
+                // Adjust colors for Reverse Mode (Boost is Bad, Back is Good)
+                const isBad = (special.type === 'BOOST' && special.val > 0) || special.type === 'DOUBLE';
+                const isGood = (special.type === 'BOOST' && special.val < 0) || special.type === 'BACK';
+                
+                if (isReverse) {
+                     if (isBad) { bgClass = "bg-red-100"; borderClass = "border-red-300"; }
+                     else if (isGood) { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; }
+                } else {
+                     if (isBad) { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; } // Actually Good in normal
+                     else if (isGood) { bgClass = "bg-red-100"; borderClass = "border-red-300"; } // Actually Bad in normal
+                }
+                
+                if (special.type === 'JUMP') { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; }
+                if (special.type === 'WAIT') { bgClass = "bg-slate-300"; borderClass = "border-slate-500"; }
+                if (special.type === 'TAIL' || special.type === 'TELEPORT' || special.type === 'SWITCH') { bgClass = "bg-purple-200"; borderClass = "border-purple-400"; }
+                if (special.type === 'DECISION') { bgClass = "bg-amber-100"; borderClass = "border-amber-400"; }
+                if (special.type === 'RESTART') { bgClass = "bg-red-200"; borderClass = "border-red-500"; }
             }
 
             if (isLava) { bgClass = "bg-orange-500 animate-pulse ring-2 ring-red-600"; borderClass = "border-red-600"; }
             if (isBlackHole) { bgClass = "black-hole-bg text-white border-black"; borderClass = "border-slate-900"; }
             if (hasGem) { bgClass = "bg-indigo-900"; borderClass = "border-yellow-400"; }
             if (isPendingTarget) { highlightClass = "ring-4 ring-yellow-400 ring-offset-2 animate-pulse z-20 shadow-xl bg-yellow-50 scale-105"; cursorClass = "cursor-pointer hover:bg-yellow-100"; }
+            if (isValidMoveTarget) {
+                 highlightClass = "ring-4 ring-green-400 ring-offset-2 animate-pulse z-20 shadow-xl bg-green-50 scale-105"; 
+                 cursorClass = "cursor-pointer hover:bg-green-100"; 
+            }
             if (isTargetSelection) { cursorClass = "cursor-pointer"; }
             const resolvedIcon = special ? getIcon(special.icon) : null;
 
@@ -285,12 +372,16 @@
                 <div 
                 onClick={() => {
                     if (isPendingTarget) onCellClick();
+                    else if (isValidMoveTarget) onCellClick();
                     else if (special && !isTargetSelection) onInfoClick({...special, icon: resolvedIcon});
                 }}
+                style={customStyle}
                 className={`relative w-full aspect-square border-2 rounded-xl flex flex-col p-1 shadow-sm transition-all duration-300 ${bgClass} ${borderClass} ${highlightClass} ${cursorClass}`}
                 >
                 <div className="flex justify-between items-start opacity-60">
-                    <span className={`font-bold text-xs md:text-sm ${hasGem || isLava || isBlackHole ? 'text-white' : ''}`}>{num === 0 ? 'START' : num}</span>
+                    <span className={`font-bold text-xs md:text-sm ${hasGem || isLava || isBlackHole || tileOwnerColor ? 'text-white/90 drop-shadow-md' : ''}`}>
+                        {num === 0 && !isTilesMode ? (isReverse ? 'FINE' : 'START') : (num === 60 && !isTilesMode && isReverse ? 'START' : num)}
+                    </span>
                     {special && !isLava && !isBlackHole && <span className="text-xs">{resolvedIcon}</span>}
                     {isLava && <Flame className="text-yellow-300 fill-orange-600 animate-bounce" size={16}/>}
                     {isBlackHole && <Disc className="text-purple-500 animate-spin" size={12}/>}
@@ -334,7 +425,7 @@
                     <Pointer className="text-yellow-600 animate-bounce w-8 h-8 drop-shadow-md fill-yellow-300" />
                     </div>
                 )}
-                {special && <div className={`text-[8px] md:text-[10px] text-center leading-tight truncate font-semibold opacity-80 ${hasGem || isLava || isBlackHole ? 'text-white' : ''}`}>{special.name}</div>}
+                {special && <div className={`text-[8px] md:text-[10px] text-center leading-tight truncate font-semibold opacity-80 ${hasGem || isLava || isBlackHole || tileOwnerColor ? 'text-white' : ''}`}>{special.name}</div>}
                 </div>
             );
         };
@@ -358,6 +449,8 @@
             const [bossTargetSelection, setBossTargetSelection] = useState(false);
             const [errorMsg, setErrorMsg] = useState(null);
             const [relayConfig, setRelayConfig] = useState({ teams: 2, size: 2 });
+            const [turnLimit, setTurnLimit] = useState(10); // Default 10 turns for Tiles mode
+            const [selectedPaintColor, setSelectedPaintColor] = useState(PAINT_COLORS[0]);
 
             const handleError = (error) => {
                 console.error("Errore rilevato:", error);
@@ -454,18 +547,29 @@
                     if (mode === 'relay') {
                         extraData.teamBotModes = { 0: 'auto', 1: 'auto', 2: 'auto', 3: 'auto' };
                     }
+                    if (mode === 'tiles') {
+                        extraData.tileOwners = {}; 
+                        extraData.maxRounds = 10;
+                    }
+                    if (mode === 'hunter') {
+                        extraData.guardUid = user.uid; // Host is Guard by default
+                    }
 
                     const playerObj = { 
                         uid: user.uid, name: nickname, characterId: charId, position: 0, 
                         skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: false, 
-                        pendingTarget: null, activeCurse: false, pawnIdx: 0 
+                        pendingTarget: null, activeCurse: false, pawnIdx: 0,
+                        paintColor: mode === 'tiles' ? selectedPaintColor : null,
+                        remainingMoves: 0 
                     };
 
                     if (mode === 'gem_hunt') playerObj.position = Math.random() > 0.5 ? 0 : 50;
                     if (mode === 'relay') playerObj.teamId = 0;
                     if (mode === 'gem_hunt') playerObj.collectedGems = [];
                     if (mode === 'lava') playerObj.lives = 2;
-                    if (mode === 'raid_boss') playerObj.lives = 999; // Boss has HP, effectively infinite lives
+                    if (mode === 'raid_boss') playerObj.lives = 999; 
+                    if (mode === 'tiles') playerObj.position = 0; 
+                    if (mode === 'reverse') playerObj.position = 60; // Start at end for reverse
 
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', code), {
                         code, hostId: user.uid, gameMode: mode, teamConfig: mode === 'relay' ? relayConfig : null, status: 'waiting', currentTurn: 0, round: 1, ...extraData,
@@ -497,21 +601,42 @@
                         data.players.forEach(p => counts[p.teamId]++);
                         bestTeam = counts.indexOf(Math.min(...counts));
                     }
-                    const startPos = data.gameMode === 'gem_hunt' ? (Math.random() > 0.5 ? 0 : 50) : 0;
-                    const playerObj = { uid: user.uid, name: nickname, characterId: charId, position: startPos, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: false, pendingTarget: null, activeCurse: false, pawnIdx: 0 };
+                    // Handle starting positions for joiners
+                    let startPos = 0;
+                    if (data.gameMode === 'gem_hunt') startPos = Math.random() > 0.5 ? 0 : 50;
+                    if (data.gameMode === 'reverse') startPos = 60;
+                    // Hunter: Thieves join at 20 (Guard logic is separate)
+                    if (data.gameMode === 'hunter') startPos = 20;
+
+                    const playerObj = { 
+                        uid: user.uid, name: nickname, characterId: charId, position: startPos, 
+                        skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: false, 
+                        pendingTarget: null, activeCurse: false, pawnIdx: 0,
+                        paintColor: data.gameMode === 'tiles' ? selectedPaintColor : null,
+                        remainingMoves: 0
+                    };
                     if (data.gameMode === 'relay') playerObj.teamId = bestTeam;
                     if (data.gameMode === 'gem_hunt') playerObj.collectedGems = [];
                     if (data.gameMode === 'lava') playerObj.lives = 2;
-                    if (data.gameMode === 'raid_boss') playerObj.lives = 3; // Raiders get 3 lives
+                    if (data.gameMode === 'raid_boss') playerObj.lives = 3; 
 
                     await updateDoc(ref, { players: arrayUnion(playerObj) });
                     setView('lobby');
                 } catch (e) { handleError(e); }
             };
 
+            const setGuard = async (uid) => {
+                if (!currentRoom || !user || currentRoom.hostId !== user.uid) return;
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { guardUid: uid });
+                } catch(e) { handleError(e); }
+            }
+
             const startGame = async () => {
                 try {
                     let gamePlayers = [...currentRoom.players];
+                    let updates = { status: 'playing', lastAction: "Partita iniziata!", currentTurn: 0 };
+
                     if (currentRoom.gameMode === 'relay') {
                          const expandedPlayers = [];
                         const teamSize = currentRoom.teamConfig.size;
@@ -535,8 +660,26 @@
                         }
                         gamePlayers = [];
                         for(let slot=0; slot<teamSize; slot++) { for(let t=0; t<numTeams; t++) { const pawn = expandedPlayers.find(p => p.teamId === t && p.pawnIdx === slot); if(pawn) gamePlayers.push(pawn); } }
-                    } else { gamePlayers = gamePlayers.map(p => ({...p, id: p.uid})); }
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { status: 'playing', lastAction: "Partita iniziata!", players: gamePlayers, currentTurn: 0 });
+                    } else if (currentRoom.gameMode === 'tiles') {
+                         const startPositions = [0, 120, 10, 110, 5, 115, 55, 65]; 
+                         gamePlayers = gamePlayers.map((p, i) => ({
+                             ...p, id: p.uid, position: startPositions[i % startPositions.length] || 0
+                         }));
+                         updates.maxRounds = turnLimit; 
+                    } else if (currentRoom.gameMode === 'reverse') {
+                        gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, position: 60})); // Force 60 for reverse
+                    } else if (currentRoom.gameMode === 'hunter') {
+                         // Set Guard to 0, Thieves to 20
+                         gamePlayers = gamePlayers.map(p => ({
+                             ...p, id: p.uid, 
+                             position: p.uid === currentRoom.guardUid ? 0 : 20
+                         }));
+                    } else { 
+                        gamePlayers = gamePlayers.map(p => ({...p, id: p.uid})); 
+                    }
+                    
+                    updates.players = gamePlayers;
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
                 } catch (e) { handleError(e); }
             };
 
@@ -546,8 +689,11 @@
                     const availableChars = ROSTER.map(c => c.id).filter(id => !currentRoom.players.some(p => p.characterId === id));
                     const charId = availableChars.length > 0 ? availableChars[Math.floor(Math.random() * availableChars.length)] : 0;
                     const botId = `bot_${Date.now()}`;
-                    const startPos = currentRoom.gameMode === 'gem_hunt' ? (Math.random() > 0.5 ? 0 : 50) : 0;
-                    
+                    let startPos = 0;
+                    if (currentRoom.gameMode === 'gem_hunt') startPos = (Math.random() > 0.5 ? 0 : 50);
+                    if (currentRoom.gameMode === 'reverse') startPos = 60;
+                    if (currentRoom.gameMode === 'hunter') startPos = 20;
+
                     let bestTeam = 0;
                     if (currentRoom.gameMode === 'relay') {
                         const counts = Array(currentRoom.teamConfig.teams).fill(0);
@@ -568,6 +714,8 @@
                         pendingTarget: null,
                         activeCurse: false,
                         pawnIdx: 0,
+                        paintColor: currentRoom.gameMode === 'tiles' ? PAINT_COLORS[Math.floor(Math.random() * PAINT_COLORS.length)] : null,
+                        remainingMoves: 0,
                         ...(currentRoom.gameMode === 'relay' ? { teamId: bestTeam } : {}),
                         ...(currentRoom.gameMode === 'gem_hunt' ? { collectedGems: [] } : {}),
                         ...(currentRoom.gameMode === 'lava' ? { lives: 2 } : {}),
@@ -589,7 +737,6 @@
                     if (playerIndex === -1) return;
                     
                     const updatedPlayers = [...currentRoom.players];
-                    // Check if char is taken by someone else
                     if (updatedPlayers.some(p => p.characterId === charId && p.uid !== user.uid)) return;
 
                     updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], characterId: charId };
@@ -600,6 +747,16 @@
                 } catch (e) {
                     handleError(e);
                 }
+            };
+
+            const updatePaintColor = async (color) => {
+                 setSelectedPaintColor(color);
+                 if (!currentRoom || !user) return;
+                 const playerIdx = currentRoom.players.findIndex(p => p.uid === user.uid);
+                 if (playerIdx === -1) return;
+                 let updated = [...currentRoom.players];
+                 updated[playerIdx] = { ...updated[playerIdx], paintColor: color };
+                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated });
             };
 
             const switchTeam = async (newTeamId) => {
@@ -632,7 +789,63 @@
                 return teamPawns.every(p => p.finished);
             };
 
+            // Calculate grid coordinates from index (11x11 grid)
+            const getCoords = (idx) => ({ x: idx % 11, y: Math.floor(idx / 11) });
+
+            const getManhattanDistance = (idx1, idx2) => {
+                const x1 = idx1 % 11;
+                const y1 = Math.floor(idx1 / 11);
+                const x2 = idx2 % 11;
+                const y2 = Math.floor(idx2 / 11);
+                return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+            };
+
+            const executeTileMove = async (playerId, targetPos) => {
+                 if (isMoving) return;
+                 setIsMoving(true);
+                 playSound('tile');
+                 try {
+                     const currentPlayerIdx = currentRoom.currentTurn;
+                     const player = currentRoom.players[currentPlayerIdx];
+                     let tempPlayers = [...currentRoom.players];
+                     let newTileOwners = { ...currentRoom.tileOwners };
+                     
+                     // 1. Move one step
+                     tempPlayers[currentPlayerIdx].position = targetPos;
+                     // 2. Decrement remaining moves
+                     tempPlayers[currentPlayerIdx].remainingMoves = (tempPlayers[currentPlayerIdx].remainingMoves || 1) - 1;
+                     // 3. Paint tile
+                     newTileOwners[targetPos] = player.paintColor;
+                     
+                     let updates = { players: tempPlayers, tileOwners: newTileOwners, lastAction: `${player.name} colora!` };
+                     
+                     // 4. Check if turn ends
+                     if (tempPlayers[currentPlayerIdx].remainingMoves <= 0) {
+                         const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
+                         if (nextTurn === 0) {
+                              const newRound = (currentRoom.round || 1) + 1;
+                              if (newRound > currentRoom.maxRounds) {
+                                   updates.status = 'finished';
+                                   updates.winner = "GARA TERMINATA! CALCOLO PUNTEGGI...";
+                              } else {
+                                   updates.round = newRound;
+                                   updates.currentTurn = 0;
+                                   updates.lastAction = `ROUND ${newRound} DI ${currentRoom.maxRounds}!`;
+                              }
+                         } else {
+                              updates.currentTurn = nextTurn;
+                         }
+                     }
+                     
+                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
+                 } catch(e) { handleError(e); }
+                 setIsMoving(false);
+            };
+
             const executeMove = async (playerId, targetPos) => {
+                // Should not reach here for tiles logic directly from board click, but as fallback
+                if (currentRoom.gameMode === 'tiles') return;
+
                 if (isMoving) return;
                 setIsMoving(true);
                 playSound('click');
@@ -641,16 +854,32 @@
                     const currentPlayerIdx = currentRoom.currentTurn;
                     const player = currentRoom.players[currentPlayerIdx];
                     const currentPos = player.position;
-                    const config = currentRoom.gameMode === 'elimination' ? ELIM_MAP : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP : CLASSIC_MAP);
+                    // Determine Map Config
+                    let config = CLASSIC_MAP;
+                    if (currentRoom.gameMode === 'elimination') config = ELIM_MAP;
+                    if (currentRoom.gameMode === 'gem_hunt') config = GEM_MAP;
+                    if (currentRoom.gameMode === 'reverse') config = REVERSE_MAP;
+                    
                     let effectiveSpecials = config.specials;
                     if (currentRoom.gameMode === 'elimination' && currentRoom.customSpecials) effectiveSpecials = currentRoom.customSpecials;
                     
                     const isBoss = currentRoom.gameMode === 'raid_boss' && player.uid === currentRoom.hostId;
-                    
+                    const isGuard = currentRoom.gameMode === 'hunter' && player.uid === currentRoom.guardUid;
+                    const isReverse = currentRoom.gameMode === 'reverse';
+
                     const steps = [];
+                    // In Reverse mode, moving "forward" means decrementing position
+                    // BUT handleRoll already provides negative values for reverse? 
+                    // No, let's keep handleRoll producing absolute magnitudes (except for special die) and handle direction here.
+                    // Wait, handleRoll produces negative values for some dice.
+                    // Let's standardise: handleRoll produces "raw" delta. 
+                    // But for classic movement, targetPos is calculated in handleRoll.
+                    // So we just iterate from current to target.
+                    
                     const direction = targetPos >= currentPos ? 1 : -1;
                     const dist = Math.abs(targetPos - currentPos); 
                     for (let i = 1; i <= dist; i++) steps.push(currentPos + (i * direction));
+                    
                     let tempPlayers = [...currentRoom.players];
                     let gemsCollectedThisTurn = [...(player.collectedGems || [])];
                     let tempGemLocations = [...(currentRoom.gemLocations || [])];
@@ -660,23 +889,49 @@
                     for (let stepPos of steps) {
                         tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: stepPos };
                         
+                        // HUNTER MODE COLLISION CHECK
+                        if (currentRoom.gameMode === 'hunter') {
+                            const guards = tempPlayers.filter(p => p.uid === currentRoom.guardUid && !p.isDead);
+                            const thieves = tempPlayers.filter(p => p.uid !== currentRoom.guardUid && !p.isDead && p.position === stepPos);
+                            
+                            if (isGuard) {
+                                // Guard moves onto thieves
+                                thieves.forEach(t => {
+                                    const tIdx = tempPlayers.findIndex(p => p.uid === t.uid);
+                                    if (tIdx !== -1) {
+                                        tempPlayers[tIdx].isDead = true;
+                                        tempPlayers[tIdx].finished = true;
+                                        collisionLog.push(`${t.name} ARRESTATO!`);
+                                        playSound('siren');
+                                    }
+                                });
+                            } else {
+                                // Thief moves onto guard (Suicide?)
+                                // Usually hunter chases, but if thief runs into guard...
+                                const guardAtPos = guards.find(g => g.position === stepPos);
+                                if (guardAtPos) {
+                                    tempPlayers[currentPlayerIdx].isDead = true;
+                                    tempPlayers[currentPlayerIdx].finished = true;
+                                    collisionLog.push(`${player.name} CORRE CONTRO LA GUARDIA! ARRESTATO!`);
+                                    playSound('siren');
+                                }
+                            }
+                        }
+
                         // RAID BOSS COLLISION LOGIC ON STEP
                         if (currentRoom.gameMode === 'raid_boss') {
                             const boss = tempPlayers.find(p => p.uid === currentRoom.hostId);
                             const raiders = tempPlayers.filter(p => p.uid !== currentRoom.hostId && !p.isDead && p.position === stepPos);
                             
                             if (isBoss) {
-                                // Boss moves over raiders
                                 raiders.forEach(r => {
                                     if (r.uid === currentRoom.bossTargetUid) {
-                                        // Specific rule: If interaction with target, target loses life
                                         const rIdx = tempPlayers.findIndex(p => p.uid === r.uid);
                                         tempPlayers[rIdx].lives -= 1;
                                         collisionLog.push(`${r.name} colpito dal BOSS!`);
                                         playSound('punch');
                                         if (tempPlayers[rIdx].lives <= 0) tempPlayers[rIdx].isDead = true;
                                     } else {
-                                        // Normal raider hit by boss moving -> Raider damage
                                         const rIdx = tempPlayers.findIndex(p => p.uid === r.uid);
                                         tempPlayers[rIdx].lives -= 1;
                                         collisionLog.push(`${r.name} calpestato dal BOSS!`);
@@ -685,16 +940,13 @@
                                     }
                                 });
                             } else {
-                                // Raider moves over boss
                                 if (boss && boss.position === stepPos) {
                                     if (player.uid === currentRoom.bossTargetUid) {
-                                        // Target hits boss -> TARGET loses life instead of boss taking damage
                                         tempPlayers[currentPlayerIdx].lives -= 1;
                                         collisionLog.push(`${player.name} (Bersaglio) si schianta sul BOSS!`);
                                         playSound('punch');
                                         if (tempPlayers[currentPlayerIdx].lives <= 0) tempPlayers[currentPlayerIdx].isDead = true;
                                     } else {
-                                        // Normal raider hits boss -> Boss Damage
                                         const dmg = lastRoll || 1;
                                         tempBossHp -= dmg;
                                         collisionLog.push(`BOSS colpito! -${dmg} HP`);
@@ -723,6 +975,12 @@
                         await sleep(250); 
                     }
 
+                    // Check if player died during movement (Hunter/Lava/Boss)
+                    if (tempPlayers[currentPlayerIdx].isDead) {
+                        setIsMoving(false);
+                        return;
+                    }
+
                     let finalPos = targetPos;
                     let log = `${player.name} è alla ${finalPos}.`;
                     if (collisionLog.length > 0) log += " " + collisionLog.join(" ");
@@ -744,9 +1002,9 @@
                     let extraTurns = 0;
                     if (special && !tempPlayers[currentPlayerIdx].isDead) {
                         log += ` ${special.name}!`; 
-                        if (special.type === 'BOOST') { await sleep(500); finalPos += special.val; if (finalPos < 0) finalPos = 0; if (finalPos > config.max) finalPos = config.max; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
+                        if (special.type === 'BOOST') { await sleep(500); finalPos += special.val; if (finalPos < 0) finalPos = 0; if (finalPos > 60) finalPos = 60; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
                         else if (special.type === 'JUMP' || special.type === 'BACK' || special.type === 'RESTART') { await sleep(800); finalPos = special.val || 0; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
-                        else if (special.type === 'DOUBLE') { await sleep(800); const moveAmt = dist; finalPos = finalPos + (moveAmt * direction); if (finalPos > config.max) finalPos = config.max; if (finalPos < 0) finalPos = 0; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
+                        else if (special.type === 'DOUBLE') { await sleep(800); const moveAmt = dist; finalPos = finalPos + (moveAmt * direction); if (finalPos > 60) finalPos = 60; if (finalPos < 0) finalPos = 0; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
                         else if (special.type === 'TAIL') { await sleep(800); const sortedByPos = [...tempPlayers].filter(p => !p.isDead).sort((a,b) => b.position - a.position); const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
                         else if (special.type === 'TELEPORT') {
                             await sleep(800);
@@ -811,8 +1069,6 @@
                     }
 
                     // *** LAVA CHECK ON DESTINATION (POST-SPECIAL) ***
-                    // We only apply damage if we MOVED to a new tile (finalPos !== targetPos)
-                    // This prevents double damage on the same tile.
                     if (finalPos !== targetPos && !tempPlayers[currentPlayerIdx].isDead && currentRoom.gameMode === 'lava' && currentRoom.lavaTiles && currentRoom.lavaTiles.includes(finalPos)) {
                         tempPlayers[currentPlayerIdx].lives -= 1;
                         log += " 🔥 ATTERRATO SU LAVA! -1 VITA!";
@@ -844,21 +1100,31 @@
 
                     // WIN CONDITION CHECK
                     let justFinished = false;
+                    let hasWon = false;
                     if (currentRoom.gameMode === 'gem_hunt' && tempPlayers[currentPlayerIdx].collectedGems.length >= 5) { // GEM LIMIT 5
-                        tempPlayers[currentPlayerIdx].finished = true; 
-                        playSound('win');
-                        justFinished = true;
+                        hasWon = true;
                     }
-                    else if (finalPos === config.max && !tempPlayers[currentPlayerIdx].isDead) { 
+                    else if (currentRoom.gameMode === 'reverse') {
+                         if (finalPos <= 0 && !tempPlayers[currentPlayerIdx].isDead) hasWon = true;
+                    }
+                    else if (finalPos === 60 && !tempPlayers[currentPlayerIdx].isDead) { // Classic 60
                         if (currentRoom.gameMode === 'raid_boss' && isBoss) {
-                             // Boss Reaches End -> Boss Wins (Game Over for Raiders)
                              updates.status = 'finished';
                              updates.winner = "IL BOSS HA VINTO!";
                              playSound('skull');
                         } else {
-                            tempPlayers[currentPlayerIdx].finished = true; 
-                            playSound('win'); 
-                            justFinished = true;
+                            hasWon = true;
+                        }
+                    }
+
+                    if (hasWon) {
+                        tempPlayers[currentPlayerIdx].finished = true; 
+                        playSound('win');
+                        justFinished = true;
+                        if (currentRoom.gameMode === 'hunter') {
+                             // Thief wins
+                             updates.status = 'finished';
+                             updates.winner = "LADRI VINCONO (Uno è scappato)!";
                         }
                     }
                     
@@ -891,6 +1157,17 @@
                          } else {
                               const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                               updates.currentTurn = nextTurn;
+                         }
+                    } else if (currentRoom.gameMode === 'hunter') {
+                         // Check if all thieves captured
+                         const thieves = tempPlayers.filter(p => p.uid !== currentRoom.guardUid);
+                         const livingThieves = thieves.filter(p => !p.isDead);
+                         if (livingThieves.length === 0) {
+                             updates.status = 'finished';
+                             updates.winner = "GUARDIA VINCE (Tutti arrestati)!";
+                         } else {
+                             const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
+                             updates.currentTurn = nextTurn;
                          }
                     } else if (currentRoom.gameMode === 'elimination') {
                         // Elimination ends when 1 survivor remains
@@ -968,14 +1245,13 @@
                                     updates.players = tempPlayers;
                                 }
 
-                                // FIX: Instead of currentTurn = 0, find first valid player
                                 updates.currentTurn = getNextTurn(tempPlayers, tempPlayers.length - 1);
                             } else {
                                 updates.currentTurn = nextTurn;
                             }
                         }
                     } else {
-                        // Classic, Infection, Gem Hunt: Wait until N-1 players finish
+                        // Classic, Infection, Gem Hunt, Reverse: Wait until N-1 players finish
                         if (finishedCount >= totalPlayers - 1 && totalPlayers > 1) { 
                             updates.status = 'finished'; 
                             updates.winner = "TUTTI ARRIVATI!"; 
@@ -1008,7 +1284,6 @@
                                     updates.lastAction = `ROUND ${updates.round}: Il virus dorme...`;
                                 }
                                 
-                                // FIX: Instead of currentTurn = 0, find first valid player
                                 updates.currentTurn = getNextTurn(tempPlayers, tempPlayers.length - 1);
                             } else {
                                 updates.currentTurn = nextTurn;
@@ -1103,7 +1378,9 @@
                     setIsRolling(true); playSound('step');
                     
                     const isBoss = currentRoom.gameMode === 'raid_boss' && player.uid === currentRoom.hostId;
-                    
+                    const isGuard = currentRoom.gameMode === 'hunter' && player.uid === currentRoom.guardUid;
+                    const isReverse = currentRoom.gameMode === 'reverse';
+
                     let vals = [];
                     if (isBoss) {
                         vals = BOSS_DICE_VALS;
@@ -1115,14 +1392,42 @@
 
                     for(let i=0; i<10; i++) { setLastRoll(vals[Math.floor(Math.random() * vals.length)]); await sleep(50); }
                     let val = vals[Math.floor(Math.random() * vals.length)];
+                    
+                    // GUARD BUFF
+                    if (isGuard) val += 2;
+
                     setLastRoll(val); await sleep(200);
                     let updated = [...currentRoom.players];
                     updated[playerIdx].activeCurse = false;
-                    if (currentRoom.gameMode === 'gem_hunt') { val = Math.abs(val); setDirectionChoice({ val }); setIsRolling(false); return; }
                     
-                    // FIX BUG 1: Use specific max value depending on game mode
-                    const config = currentRoom.gameMode === 'elimination' ? ELIM_MAP : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP : CLASSIC_MAP);
-                    let newPos = Math.max(0, Math.min(player.position + val, config.max));
+                    if (currentRoom.gameMode === 'gem_hunt') { 
+                        val = Math.abs(val); setDirectionChoice({ val }); setIsRolling(false); return; 
+                    }
+                    
+                    // TILES MODE: Set remaining moves in DB for persistent turn state
+                    if (currentRoom.gameMode === 'tiles') {
+                         val = Math.abs(val);
+                         updated[playerIdx].remainingMoves = val;
+                         setIsRolling(false);
+                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} ha ${val} passi! Clicca sulle caselle vicine!` });
+                         return;
+                    }
+
+                    const config = currentRoom.gameMode === 'elimination' ? ELIM_MAP : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP : CLASSIC_MAP));
+                    const maxVal = config.max !== undefined ? config.max : 60;
+                    
+                    // MOVEMENT CALC
+                    // In Reverse, if val is positive, we subtract (move towards 0)
+                    // Wait, logic in executeMove uses targetPos.
+                    // If Reverse, player is at 60. Rolls 5. Target 55.
+                    // So we subtract.
+                    
+                    let newPos;
+                    if (isReverse) {
+                         newPos = Math.max(0, player.position - val); // Target 0
+                    } else {
+                         newPos = Math.min(maxVal, player.position + val); // Target Max
+                    }
                     
                     updated[playerIdx].pendingTarget = newPos;
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}!` });
@@ -1164,8 +1469,24 @@
                     const isGenericBot = p.isBot && currentRoom.gameMode !== 'relay' && currentRoom.hostId === user?.uid && !isRolling && !isMoving && !decisionMode && !directionChoice;
 
                     if (shouldAutoRun || isGenericBot) {
-                        if (p.pendingTarget === null) { const t = setTimeout(() => handleRoll(), 1500); return () => clearTimeout(t); }
-                        else { const t = setTimeout(() => executeMove(p.uid, p.pendingTarget), 1500); return () => clearTimeout(t); }
+                        if (currentRoom.gameMode === 'tiles') {
+                             if (!isRolling && (!p.remainingMoves || p.remainingMoves <= 0)) {
+                                  const t = setTimeout(() => handleRoll(), 1500); return () => clearTimeout(t);
+                             } else if (p.remainingMoves > 0) {
+                                  // Bot Random Step for Tiles
+                                  const validMoves = [];
+                                  for(let i=0; i<121; i++) {
+                                       if(getManhattanDistance(p.position, i) === 1) validMoves.push(i);
+                                  }
+                                  if (validMoves.length > 0) {
+                                      const target = validMoves[Math.floor(Math.random() * validMoves.length)];
+                                      const t = setTimeout(() => executeTileMove(p.uid, target), 800); return () => clearTimeout(t);
+                                  }
+                             }
+                        } else {
+                            if (p.pendingTarget === null) { const t = setTimeout(() => handleRoll(), 1500); return () => clearTimeout(t); }
+                            else { const t = setTimeout(() => executeMove(p.uid, p.pendingTarget), 1500); return () => clearTimeout(t); }
+                        }
                     }
                 }
             }, [currentRoom, isRolling, isMoving, user, directionChoice, decisionMode]);
@@ -1288,8 +1609,11 @@
                                 <button onClick={() => createRoom('infection')} disabled={!nickname} className="h-24 bg-lime-700 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Biohazard className="mx-auto mb-1"/> INFEZIONE</button>
                                 <button onClick={() => createRoom('lava')} disabled={!nickname} className="h-24 bg-orange-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Flame className="mx-auto mb-1"/> LAVA</button>
                                 <button onClick={() => createRoom('gem_hunt')} disabled={!nickname} className="h-24 bg-indigo-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Gem className="mx-auto mb-1"/> CACCIA ALLE GEMME</button>
-                                <button onClick={() => createRoom('raid_boss')} disabled={!nickname} className="h-24 bg-red-900 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all col-span-2 border-2 border-red-500"><Crown className="mx-auto mb-1"/> RAID BOSS</button>
-                                <button onClick={() => createRoom('black_hole')} disabled={!nickname} className="h-24 bg-black rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all col-span-2 border-2 border-purple-500"><Disc className="mx-auto mb-1"/> BUCO NERO</button>
+                                <button onClick={() => createRoom('raid_boss')} disabled={!nickname} className="h-24 bg-red-900 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-red-500"><Crown className="mx-auto mb-1"/> RAID BOSS</button>
+                                <button onClick={() => createRoom('black_hole')} disabled={!nickname} className="h-24 bg-black rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Disc className="mx-auto mb-1"/> BUCO NERO</button>
+                                <button onClick={() => createRoom('tiles')} disabled={!nickname} className="h-24 bg-fuchsia-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Grid3X3 className="mx-auto mb-1"/> TILES</button>
+                                <button onClick={() => createRoom('hunter')} disabled={!nickname} className="h-24 bg-slate-700 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-blue-400"><Siren className="mx-auto mb-1"/> GUARDIE/LADRI</button>
+                                <button onClick={() => createRoom('reverse')} disabled={!nickname} className="h-24 bg-amber-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all col-span-2"><Rewind className="mx-auto mb-1"/> REVERSE</button>
                             </div>
                             <button onClick={() => nickname && setView('relay_setup')} disabled={!nickname} className="w-full py-3 bg-blue-600 rounded-xl text-white font-black shadow-lg flex flex-col items-center"><Users size={20}/> STAFFETTA</button>
                             <div className="flex gap-2"><input id="codeIn" type="text" placeholder="CODICE" className="flex-1 p-3 rounded-xl border-2 font-black text-center uppercase"/><button onClick={() => joinRoom(document.getElementById('codeIn').value)} disabled={!nickname} className="px-6 bg-slate-800 text-white font-black rounded-xl uppercase text-xs">Entra</button></div>
@@ -1311,6 +1635,44 @@
                                 <div><h2 className="text-2xl font-black text-indigo-900 uppercase">{currentRoom.gameMode.replace('_', ' ')}</h2></div>
                                 {currentRoom.hostId === user.uid && <div className="flex gap-2"><button onClick={addBot} className="bg-slate-200 px-4 py-2 rounded-lg font-black text-xs uppercase">Add Bot</button><button onClick={startGame} className="bg-green-500 text-white px-8 py-2 rounded-lg font-black shadow-lg">START</button></div>}
                             </div>
+                            
+                            {/* Tiles Mode Configuration Panel */}
+                            {currentRoom.gameMode === 'tiles' && (
+                                <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-fuchsia-500 animate-in slide-in-from-top-4">
+                                    <h3 className="font-black text-lg text-fuchsia-800 mb-4 flex items-center gap-2"><Palette/> CONFIGURAZIONE TILES</h3>
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Il tuo Colore</div>
+                                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                                {PAINT_COLORS.map(c => (
+                                                    <button 
+                                                        key={c} 
+                                                        onClick={() => updatePaintColor(c)}
+                                                        className={`w-10 h-10 rounded-full flex-shrink-0 transition-all ${selectedPaintColor === c ? 'scale-125 ring-4 ring-offset-2 ring-slate-400' : 'hover:scale-110'}`}
+                                                        style={{backgroundColor: c}}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {currentRoom.hostId === user.uid && (
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                    <span><Timer size={14} className="inline mr-1"/>Durata Partita</span>
+                                                    <span className="text-fuchsia-600 text-lg">{turnLimit} Turni</span>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="5" 
+                                                    max="30" 
+                                                    value={turnLimit} 
+                                                    onChange={(e) => setTurnLimit(Number(e.target.value))}
+                                                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-fuchsia-600"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             
                             {/* Player List Panel - DYNAMIC FOR RELAY */}
                             {currentRoom.gameMode === 'relay' ? (
@@ -1374,6 +1736,9 @@
                                                         <div className="text-[10px] text-slate-400 uppercase font-bold">{ROSTER[p.characterId].name}</div>
                                                     </div>
                                                     {p.uid === currentRoom.hostId && <Crown size={14} className="text-yellow-500"/>}
+                                                    {currentRoom.gameMode === 'tiles' && p.paintColor && (
+                                                        <div className="w-4 h-4 rounded-full border border-slate-300 shadow-sm" style={{backgroundColor: p.paintColor}}></div>
+                                                    )}
                                                     {currentRoom.gameMode === 'lava' && p.lives !== undefined && (
                                                         <div className="flex items-center gap-0.5 text-red-500 font-black text-xs">
                                                             <Heart size={12} className="fill-current"/> x {p.lives}
@@ -1382,6 +1747,18 @@
                                                     {currentRoom.gameMode === 'raid_boss' && (
                                                         <div className="flex items-center gap-0.5 font-black text-xs">
                                                             {p.uid === currentRoom.hostId ? <span className="text-red-700 bg-red-100 px-1 rounded">BOSS</span> : <span className="text-blue-700 bg-blue-100 px-1 rounded flex items-center gap-1"><Heart size={10} className="fill-current"/> {p.lives}</span>}
+                                                        </div>
+                                                    )}
+                                                    {currentRoom.gameMode === 'hunter' && (
+                                                        <div className="flex items-center gap-0.5 font-black text-xs">
+                                                            {p.uid === currentRoom.guardUid ? 
+                                                                <span className="text-blue-700 bg-blue-100 px-1 rounded flex items-center gap-1 border border-blue-200"><Shield size={10} className="fill-current"/> GUARDIA</span> 
+                                                                : 
+                                                                (currentRoom.hostId === user.uid ? 
+                                                                    <button onClick={() => setGuard(p.uid)} className="text-slate-400 hover:text-blue-500 bg-slate-100 hover:bg-blue-50 px-2 py-0.5 rounded border flex items-center gap-1 transition-colors" title="Assegna Guardia"><Shield size={10}/> Rendi Guardia</button> 
+                                                                    : <span className="text-slate-500 bg-slate-100 px-1 rounded flex items-center gap-1"><Footprints size={10}/> LADRO</span>
+                                                                )
+                                                            }
                                                         </div>
                                                     )}
                                                 </div>
@@ -1428,6 +1805,12 @@
                                             <Heart size={16} className="fill-current"/> <span className="font-black text-lg">{currentPlayer.lives}</span>
                                          </div>
                                     )}
+                                    {currentRoom.gameMode === 'tiles' && currentPlayer.paintColor && (
+                                         <div className="flex items-center gap-1 px-2 py-1 rounded-lg border bg-slate-50" style={{borderColor: currentPlayer.paintColor}}>
+                                            <div className="w-4 h-4 rounded-full" style={{backgroundColor: currentPlayer.paintColor}}></div>
+                                            <span className="font-black text-xs">COLORE</span>
+                                         </div>
+                                    )}
                                     {currentRoom.gameMode === 'raid_boss' && (
                                         <div className="flex items-center gap-2">
                                             {currentPlayer.uid === currentRoom.hostId ? 
@@ -1437,16 +1820,44 @@
                                             }
                                         </div>
                                     )}
+                                    {currentRoom.gameMode === 'hunter' && (
+                                        <div className="flex items-center gap-2">
+                                            {currentPlayer.uid === currentRoom.guardUid ? 
+                                                <div className="bg-blue-900 text-white px-3 py-1 rounded-lg font-black flex items-center gap-1"><Shield size={14}/> GUARDIA</div> 
+                                                : 
+                                                <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-black flex items-center gap-1"><Footprints size={14}/> LADRO</div>
+                                            }
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-right">
                                     <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{currentRoom.gameMode.toUpperCase().replace('_', ' ')}</div>
-                                    <div className="font-black text-indigo-900 leading-none">ROUND {currentRoom.round}</div>
+                                    <div className="font-black text-indigo-900 leading-none">ROUND {currentRoom.round} {currentRoom.gameMode === 'tiles' && `/ ${currentRoom.maxRounds}`}</div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-5 md:grid-cols-8 lg:grid-cols-10 gap-1.5 p-2 bg-slate-200/50 rounded-xl">
-                                {Array.from({ length: (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60)) + 1 }).map((_, i) => (
-                                    <BoardCell key={i} num={i} players={currentRoom.players.filter(p => p.position === i && !p.isDead)} special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : CLASSIC_MAP.specials[i]))} isElimination={currentRoom.gameMode === 'elimination'} isPendingTarget={currentPlayer.uid === user.uid && currentPlayer.pendingTarget === i} onCellClick={targetSelectionMode ? () => {} : () => executeMove(user.uid, i)} onInfoClick={(s) => setSelectedCellInfo(s)} gems={currentRoom.gemLocations} infected={currentRoom.infectedNPC} isTargetSelection={false} lavaTiles={currentRoom.lavaTiles} blackHolePos={currentRoom.blackHolePos} bossTargetUid={currentRoom.bossTargetUid} />
+                            <div className={`gap-1.5 p-2 bg-slate-200/50 rounded-xl grid ${currentRoom.gameMode === 'tiles' ? 'grid-cols-11' : 'grid-cols-5 md:grid-cols-8 lg:grid-cols-10'}`}>
+                                {Array.from({ length: (currentRoom.gameMode === 'tiles' ? 121 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60)) + 1) }).map((_, i) => (
+                                    <BoardCell 
+                                        key={i} 
+                                        num={i} 
+                                        players={currentRoom.players.filter(p => p.position === i && !p.isDead)} 
+                                        special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : CLASSIC_MAP.specials[i]))))} 
+                                        isElimination={currentRoom.gameMode === 'elimination'} 
+                                        isPendingTarget={currentPlayer.uid === user.uid && currentPlayer.pendingTarget === i} 
+                                        isValidMoveTarget={currentRoom.gameMode === 'tiles' && canControlCurrent && currentPlayer.remainingMoves > 0 && getManhattanDistance(currentPlayer.position, i) === 1}
+                                        onCellClick={targetSelectionMode ? () => {} : (currentRoom.gameMode === 'tiles' && canControlCurrent && currentPlayer.remainingMoves > 0 ? () => executeTileMove(user.uid, i) : () => executeMove(user.uid, i))} 
+                                        onInfoClick={(s) => setSelectedCellInfo(s)} 
+                                        gems={currentRoom.gemLocations} 
+                                        infected={currentRoom.infectedNPC} 
+                                        isTargetSelection={false} 
+                                        lavaTiles={currentRoom.lavaTiles} 
+                                        blackHolePos={currentRoom.blackHolePos} 
+                                        bossTargetUid={currentRoom.bossTargetUid}
+                                        tileOwnerColor={currentRoom.tileOwners?.[i]}
+                                        isTilesMode={currentRoom.gameMode === 'tiles'}
+                                        isReverse={currentRoom.gameMode === 'reverse'}
+                                    />
                                 ))}
                             </div>
 
@@ -1455,23 +1866,34 @@
                                     <div className="bg-indigo-900 text-white p-6 rounded-2xl shadow-2xl text-center border-4 border-yellow-400 animate-bounce-slow"><Trophy size={48} className="mx-auto text-yellow-400 mb-2"/><h2 className="text-3xl font-black uppercase">Vittoria!</h2><p className="text-xl font-bold opacity-90">{currentRoom.winner}</p><button onClick={() => { setView('menu'); setRoomCode(''); }} className="mt-4 bg-white text-indigo-900 px-6 py-2 rounded-full font-black uppercase text-xs">Menu</button></div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {canControlCurrent && lastRoll !== null && !isRolling && !directionChoice && !decisionMode && (
+                                        {canControlCurrent && lastRoll !== null && !isRolling && !directionChoice && !decisionMode && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
                                             <div className="bg-white/90 backdrop-blur-sm border-2 border-indigo-500 text-indigo-900 rounded-xl p-2 text-center shadow-lg animate-in slide-in-from-bottom-2">
                                                 <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Hai fatto</div>
-                                                <div className="text-3xl font-black leading-none">{lastRoll}</div>
+                                                <div className="text-3xl font-black leading-none">
+                                                    {lastRoll}
+                                                    {currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid && <span className="text-xs ml-2 text-blue-500 font-bold">(+2 BUFF)</span>}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* TILES MODE MOVEMENT PROMPT */}
+                                        {currentRoom.gameMode === 'tiles' && currentPlayer.remainingMoves > 0 && canControlCurrent && (
+                                            <div className="bg-white p-4 rounded-2xl shadow-2xl border-4 border-fuchsia-500 animate-bounce flex flex-col items-center gap-2">
+                                                <h3 className="font-black text-fuchsia-900 uppercase">HAI {currentPlayer.remainingMoves} PASSI!</h3>
+                                                <div className="text-xs font-bold text-center">Tocca una casella vicina per colorare!</div>
                                             </div>
                                         )}
                                         
                                         {directionChoice && canControlCurrent && (
                                             <div className="bg-white p-4 rounded-2xl shadow-2xl border-4 border-indigo-500 animate-bounce flex flex-col items-center gap-4"><h3 className="font-black text-indigo-900 uppercase">Scegli Direzione: {directionChoice.val}</h3><div className="flex gap-4 w-full"><button onClick={() => confirmGemMove(-1)} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-black uppercase flex flex-col items-center"><ArrowLeft/> Indietro</button><button onClick={() => confirmGemMove(1)} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-black uppercase flex flex-col items-center"><ArrowRight/> Avanti</button></div></div>
                                         )}
-                                        {!directionChoice && !decisionMode && !bossTargetSelection && (
+                                        {!directionChoice && !decisionMode && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
                                             <button onClick={handleRoll} disabled={isRolling || isMoving || !canControlCurrent || currentPlayer.pendingTarget !== null} className={`w-full py-4 rounded-2xl font-black text-2xl shadow-xl transition-all flex items-center justify-center gap-3 border-b-8 active:translate-y-2 active:border-b-0 ${isRolling || isMoving ? 'bg-slate-300 border-slate-400' : (canControlCurrent ? 'bg-orange-500 text-white border-orange-700' : 'bg-slate-100 text-slate-300 border-slate-200')}`}>{isRolling ? <Dice5 className="animate-spin"/> : <Dice5/>} <span>{isRolling ? "..." : (currentPlayer.pendingTarget !== null ? "CLICCA LA CASELLA!" : (currentPlayer.activeCurse ? "MALEDETTO!" : "TIRA DADO"))}</span></button>
                                         )}
-                                        {canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !currentPlayer.activeCurse && !bossTargetSelection && (
+                                        {canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !currentPlayer.activeCurse && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
                                             <div className="bg-white p-3 rounded-xl shadow-lg border-2 flex flex-col gap-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
                                                 <div className="flex justify-between items-end">
-                                                     <div className="text-[10px] font-black text-slate-400 uppercase mb-1">{currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId ? "DADO BOSS" : "Probabilità"}</div>
+                                                     <div className="text-[10px] font-black text-slate-400 uppercase mb-1">{currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId ? "DADO BOSS" : (currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid ? "DADO GUARDIA" : "Probabilità")}</div>
                                                 </div>
                                                 <div className="flex justify-between gap-1">
                                                     {(currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId ? BOSS_DICE_VALS : ROSTER[currentPlayer.characterId].dice.vals).map((v, i) => (
@@ -1480,7 +1902,7 @@
                                                         </div>
                                                     ))}
                                                 </div>
-                                                {!(currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId) && (
+                                                {!(currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId) && !(currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid) && (
                                                 <>
                                                     <div className="h-px bg-slate-100 my-1"></div>
                                                     <div className="flex justify-between items-center">
@@ -1505,27 +1927,38 @@
                         <div className="hidden lg:flex flex-col w-80 bg-indigo-950 text-white border-l-4 border-white/10 overflow-y-auto p-4 space-y-3">
                             <h3 className="font-black text-lg border-b border-white/10 pb-2 flex items-center gap-2"><Trophy size={20} className="text-yellow-400"/> CLASSIFICA</h3>
                             {[...currentRoom.players].sort((a,b) => {
+                                if (currentRoom.gameMode === 'tiles') {
+                                    // Count tiles owned
+                                    const countA = Object.values(currentRoom.tileOwners || {}).filter(c => c === a.paintColor).length;
+                                    const countB = Object.values(currentRoom.tileOwners || {}).filter(c => c === b.paintColor).length;
+                                    return countB - countA;
+                                }
                                 if (a.finished && !b.finished) return -1;
                                 if (!a.finished && b.finished) return 1;
                                 if (a.finished && b.finished) return (a.rank || 0) - (b.rank || 0);
                                 if (currentRoom.gameMode === 'gem_hunt') return (b.collectedGems?.length||0) - (a.collectedGems?.length||0);
+                                if (currentRoom.gameMode === 'reverse') return a.position - b.position; // Reverse sort for reverse mode (smaller is better)
                                 return b.position - a.position;
-                            }).map((p, i) => (
+                            }).map((p, i) => {
+                                const tileCount = currentRoom.gameMode === 'tiles' ? Object.values(currentRoom.tileOwners || {}).filter(c => c === p.paintColor).length : 0;
+                                return (
                                 <div key={p.id} onClick={() => targetSelectionMode && handleTargetClick(p.uid)} className={`p-3 rounded-xl border-2 flex items-center gap-3 transition-all ${p.uid === user.uid ? 'bg-white/10 border-indigo-400' : 'bg-black/20 border-transparent'} ${targetSelectionMode ? 'cursor-pointer hover:border-red-500 hover:bg-white/5' : ''}`}>
                                     <div className="font-black text-white/40 w-6">{p.finished ? '🏁' : `${i+1}°`}</div>
                                     <PlayerAvatar charId={p.characterId} size="sm"/>
                                     <div className="flex-1 min-w-0">
                                         <div className="font-black text-sm truncate">{p.name}</div>
                                         <div className="text-[10px] font-bold text-white/50 uppercase">
-                                            {p.finished ? 'Arrivato' : `Casella ${p.position}`} {p.activeCurse && "• Maledetto"}
+                                            {currentRoom.gameMode === 'tiles' ? `Tiles: ${tileCount}` : (p.finished ? 'Arrivato' : `Casella ${p.position}`)} 
+                                            {p.activeCurse && "• Maledetto"}
                                             {currentRoom.gameMode === 'gem_hunt' && ` • Gemme: ${p.collectedGems?.length || 0}/5`}
                                             {currentRoom.gameMode === 'lava' && ` • Vite: ${p.lives}`}
                                             {currentRoom.gameMode === 'raid_boss' && (p.uid === currentRoom.hostId ? ` • Boss HP: ${currentRoom.bossHp}` : ` • Vite: ${p.lives}`)}
                                         </div>
                                     </div>
                                     {currentRoom.gameMode === 'raid_boss' && p.uid === currentRoom.bossTargetUid && <Crosshair className="text-red-500 animate-pulse"/>}
+                                    {currentRoom.gameMode === 'tiles' && <div className="w-3 h-3 rounded-full" style={{backgroundColor: p.paintColor}}></div>}
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     )}
                 </div>
