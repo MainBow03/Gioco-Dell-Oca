@@ -84,7 +84,7 @@
             ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
             Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
             Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind, Swords as SwordsIcon, Coins,
-            Gamepad2, Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, ListOrdered
+            Gamepad2, Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List
         } from 'lucide-react';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -167,7 +167,6 @@
         ].map((c, i) => ({ ...c, id: i }));
 
         const BOSS_DICE_VALS = [3, 4, 5, 6, 7, 8];
-        const BR_THRESHOLDS = [24, 16, 10, 6, 4, 1]; // Soglie Qualificati per round
 
         const playSound = (type) => {
             try {
@@ -533,6 +532,7 @@
             const [sniperSelection, setSniperSelection] = useState([]);
 
             const [botSpeed, setBotSpeed] = useState(1);
+            const [brConfigInput, setBrConfigInput] = useState("");
 
             const handleError = (error) => {
                 console.error("Errore rilevato:", error);
@@ -594,31 +594,6 @@
                 }
                 return newCoins;
             }
-
-            // AUTO-GENERATE BATTLE ROYALE CONFIG (DEFAULT)
-            const getAutoBRConfig = (playerCount) => {
-                const rounds = [];
-                let current = playerCount;
-                let roundLimit = Math.max(1, Math.ceil(current / 1.5));
-                rounds.push(roundLimit);
-                while (roundLimit > 1) {
-                    current = roundLimit;
-                    roundLimit = Math.max(1, Math.floor(current / 2));
-                    rounds.push(roundLimit);
-                }
-                return rounds;
-            };
-            
-            // Effect to set default BR config if missing
-            useEffect(() => {
-                if (currentRoom?.gameMode === 'battle_royale' && currentRoom.hostId === user?.uid) {
-                     // Check if config exists or needs update
-                     if (!currentRoom.brConfig || currentRoom.brConfig.length === 0) {
-                         const defaultConfig = getAutoBRConfig(currentRoom.players.length);
-                         updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { brConfig: defaultConfig });
-                     }
-                }
-            }, [currentRoom?.players?.length, currentRoom?.gameMode]);
 
             useEffect(() => {
                 const initAuth = async () => { try { await signInAnonymously(auth); } catch (e) { handleError(e); } };
@@ -690,7 +665,7 @@
                     if (mode === 'battle_royale') {
                         extraData.qualifyLimit = 16;
                         extraData.battleRoundIndex = 0;
-                        extraData.brConfig = [1]; // Init empty, effect will fill
+                        extraData.battleRoundConfig = [16, 8, 4, 2, 1]; // Default configuration
                     }
                     if (mode === 'sniper') {
                         extraData.sniperTargets = [];
@@ -784,14 +759,6 @@
                  if (!currentRoom || !user || currentRoom.hostId !== user.uid) return;
                  try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { guardUid: uid }); } catch(e) { handleError(e); }
             }
-            
-            // Updates manual config for BR
-            const updateBRConfig = async (index, val) => {
-                if (!currentRoom || !currentRoom.brConfig) return;
-                const newConfig = [...currentRoom.brConfig];
-                newConfig[index] = Number(val);
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { brConfig: newConfig });
-            }
 
             const startGame = async () => {
                  try {
@@ -832,10 +799,9 @@
                     } else if (currentRoom.gameMode === 'hunter') {
                          gamePlayers = gamePlayers.map(p => ({ ...p, id: p.uid, position: p.uid === currentRoom.guardUid ? 0 : 20 }));
                     } else if (currentRoom.gameMode === 'battle_royale') {
-                        const playerCount = gamePlayers.length;
-                        // Use Config if exists, else fallback
-                        const firstRoundLimit = currentRoom.brConfig ? currentRoom.brConfig[0] : Math.max(1, Math.ceil(playerCount / 1.5));
-                        updates.qualifyLimit = firstRoundLimit;
+                        // Use Custom Configuration for Initial Round
+                        const config = currentRoom.battleRoundConfig || [16, 8, 4, 2, 1];
+                        updates.qualifyLimit = config.length > 0 ? config[0] : 1;
                         gamePlayers = gamePlayers.map(p => ({...p, id: p.uid}));
                     } else if (currentRoom.gameMode === 'sniper') {
                         // Ensure sniper is at 60 and others at 0
@@ -1330,22 +1296,25 @@
                             
                             if (currentRoom.qualifyLimit === 1) { updates.status = 'finished'; updates.winner = `${player.name} VINCE LA BATTLE ROYALE!`; } 
                             else {
-                                // Manual Config Logic
-                                const nextRoundIdx = brRound + 1;
+                                const config = currentRoom.battleRoundConfig || [];
+                                // Get next round limit. If end of config, default to 1
                                 let nextLimit = 1;
-                                if (currentRoom.brConfig && nextRoundIdx < currentRoom.brConfig.length) {
-                                    nextLimit = currentRoom.brConfig[nextRoundIdx];
-                                } else {
-                                     // Fallback auto
-                                     const survivorsCount = currentRoom.qualifyLimit;
-                                     nextLimit = Math.max(1, Math.floor(survivorsCount / 2));
+                                if (config.length > brRound + 1) {
+                                    nextLimit = config[brRound + 1];
                                 }
-
-                                tempPlayers = tempPlayers.map(p => { if (p.finished && !p.isDead) { return { ...p, finished: false, position: 0, pendingTarget: null }; } return p; });
-                                updates.battleRoundIndex = nextRoundIdx;
+                                
+                                const survivors = tempPlayers.filter(p => p.finished);
+                                
+                                tempPlayers = tempPlayers.map(p => { 
+                                    if (p.finished && !p.isDead) { 
+                                        return { ...p, finished: false, position: 0, pendingTarget: null }; 
+                                    } 
+                                    return p; 
+                                });
+                                updates.battleRoundIndex = brRound + 1;
                                 updates.qualifyLimit = nextLimit;
                                 updates.round = (currentRoom.round || 1) + 1;
-                                updates.lastAction = `ROUND ${brRound+1} FINITO! ${totalPlayers - activePlayers.length} ELIMINATI!`;
+                                updates.lastAction = `ROUND ${brRound+1} FINITO! ${totalPlayers - activePlayers.length} ELIMINATI! PROSSIMO: QUALIFICANO ${nextLimit}`;
                                 updates.players = tempPlayers;
                                 updates.currentTurn = getNextTurn(tempPlayers, -1);
                             }
@@ -1658,6 +1627,21 @@
                 });
                 setSniperSelection([]);
             };
+
+            // BR Config Sync
+            useEffect(() => {
+                if (currentRoom && currentRoom.gameMode === 'battle_royale' && currentRoom.battleRoundConfig && !brConfigInput) {
+                    setBrConfigInput(currentRoom.battleRoundConfig.join(", "));
+                }
+            }, [currentRoom]);
+
+            const updateBrConfig = async (val) => {
+                setBrConfigInput(val);
+                const nums = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0);
+                if (nums.length > 0 && currentRoom) {
+                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { battleRoundConfig: nums });
+                }
+            }
 
             // Minigame Components
             const MinigameUI = () => {
@@ -2115,33 +2099,24 @@
                                 </div>}
                             </div>
                             
-                            {/* Battle Royale Config Panel */}
-                            {currentRoom.gameMode === 'battle_royale' && currentRoom.brConfig && (
+                            {/* Battle Royale Config */}
+                            {currentRoom.gameMode === 'battle_royale' && currentRoom.hostId === user.uid && (
                                 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-violet-500 animate-in slide-in-from-top-4">
-                                    <h3 className="font-black text-lg text-violet-800 mb-4 flex items-center gap-2"><ListOrdered/> CONFIGURAZIONE ROUND</h3>
-                                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                                        {currentRoom.brConfig.map((limit, idx) => (
-                                            <div key={idx} className="flex-shrink-0 flex flex-col items-center bg-violet-50 p-3 rounded-xl border border-violet-100 min-w-[100px]">
-                                                <div className="text-xs font-bold text-violet-400 uppercase mb-1">Round {idx + 1}</div>
-                                                <div className="text-3xl font-black text-violet-900 mb-2">{limit}</div>
-                                                <div className="text-[10px] font-bold text-slate-400 mb-2">PASSANO</div>
-                                                {currentRoom.hostId === user.uid && (
-                                                    <div className="flex gap-1 w-full">
-                                                        <button onClick={() => updateBRConfig(idx, Math.max(1, limit - 1))} className="flex-1 bg-white border rounded hover:bg-slate-100 font-bold">-</button>
-                                                        <button onClick={() => updateBRConfig(idx, limit + 1)} className="flex-1 bg-white border rounded hover:bg-slate-100 font-bold">+</button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                        <div className="flex-shrink-0 flex flex-col items-center justify-center p-3 min-w-[100px]">
-                                            <div className="text-3xl font-black text-yellow-500">🏆</div>
-                                            <div className="text-xs font-bold text-slate-400 mt-2">VITTORIA</div>
-                                        </div>
+                                    <h3 className="font-black text-lg text-violet-800 mb-2 flex items-center gap-2"><List/> CONFIGURAZIONE ROUND</h3>
+                                    <p className="text-xs text-slate-500 mb-2">Inserisci il numero di qualificati per ogni round, separati da virgola. Esempio: 16, 8, 4, 1</p>
+                                    <input 
+                                        type="text" 
+                                        value={brConfigInput} 
+                                        onChange={(e) => updateBrConfig(e.target.value)} 
+                                        className="w-full p-3 border-2 border-violet-200 rounded-xl font-mono text-lg font-bold text-violet-900 focus:outline-none focus:border-violet-500"
+                                        placeholder="Esempio: 16, 8, 4, 2, 1"
+                                    />
+                                    <div className="mt-2 text-xs font-bold text-violet-400 uppercase">
+                                        Round attuali: {brConfigInput.split(',').filter(n=>n.trim()).length}
                                     </div>
-                                    <p className="text-xs text-slate-400 italic mt-2 text-center">Modifica quanti giocatori si qualificano per ogni round. L'ultimo sopravvissuto vince.</p>
                                 </div>
                             )}
-                            
+
                             {/* Tiles Mode Configuration Panel */}
                             {currentRoom.gameMode === 'tiles' && (
                                 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-fuchsia-500 animate-in slide-in-from-top-4">
