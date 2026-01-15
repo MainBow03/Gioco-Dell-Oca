@@ -47,15 +47,6 @@
         /* Custom scrollbar */
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Minigame Bar Animation */
-        @keyframes moveBar {
-            0% { left: 0%; }
-            100% { left: 95%; }
-        }
-        .bar-moving {
-            animation: moveBar 0.8s linear infinite alternate;
-        }
         
         /* Glitch Effect */
         @keyframes glitch-anim {
@@ -84,7 +75,7 @@
             ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
             Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
             Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind, Swords as SwordsIcon, Coins,
-            Gamepad2, Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List
+            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List
         } from 'lucide-react';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -216,7 +207,6 @@
             Rewind: <Rewind />,
             Swords: <SwordsIcon />,
             Coins: <Coins />,
-            Gamepad2: <Gamepad2 />,
             Scope: <Scope />,
             Bug: <Bug />
         };
@@ -230,7 +220,7 @@
         max: 60,
         specials: {
             6: { type: 'JUMP', val: 12, name: 'Ponte', icon: <ArrowRight />, desc: "Attraversa il ponte! Vai direttamente alla casella 12." },
-            15: { type: 'MINIGAME', name: 'Sala Giochi', icon: <Gamepad2 />, desc: "Sfida un avversario a un minigioco!" },
+            15: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, // Sostituito MINIGAME
             16: { type: 'TELEPORT', name: 'Teletrasporto', icon: <Shuffle />, desc: "Scambio dimensionale! Vai nella casella di un giocatore a caso." },
             19: { type: 'WAIT', turns: 2, name: 'Pozzo', icon: <RefreshCcw />, desc: "Sei caduto nel Pozzo! Devi aspettare 2 turni per risalire." }, 
             22: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Scegli il tuo destino! 3 opzioni casuali." },
@@ -240,7 +230,7 @@
             33: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Ti piazzi davanti! Vai alla casella davanti al giocatore che ti segue." },
             42: { type: 'BACK', val: 30, name: 'Labirinto', icon: <ArrowDown />, desc: "Ti sei perso nel Labirinto! Torni indietro alla casella 30." },
             44: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Scegli il tuo destino! 3 opzioni casuali." },
-            45: { type: 'MINIGAME', name: 'Sala Giochi', icon: <Gamepad2 />, desc: "Sfida un avversario a un minigioco!" },
+            45: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, // Sostituito MINIGAME
             48: { type: 'TELEPORT', name: 'Teletrasporto', icon: <Shuffle />, desc: "Scambio dimensionale! Vai nella casella di un giocatore a caso." },
             51: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Strategia inversa! Ti piazzi davanti all'inseguitore." },
             52: { type: 'WAIT', turns: 2, name: 'Prigione', icon: <ShieldAlert />, desc: "Sei stato arrestato! Rimani in Prigione per 2 turni." },
@@ -403,7 +393,6 @@
                 if (special.type === 'TAIL' || special.type === 'FRONT' || special.type === 'TELEPORT' || special.type === 'SWITCH') { bgClass = "bg-purple-200"; borderClass = "border-purple-400"; }
                 if (special.type === 'DECISION') { bgClass = "bg-amber-100"; borderClass = "border-amber-400"; }
                 if (special.type === 'RESTART') { bgClass = "bg-red-200"; borderClass = "border-red-500"; }
-                if (special.type === 'MINIGAME') { bgClass = "bg-pink-300"; borderClass = "border-pink-500"; }
             }
 
             if (isLava) { bgClass = "bg-orange-500 animate-pulse ring-2 ring-red-600"; borderClass = "border-red-600"; }
@@ -523,10 +512,6 @@
             const [relayConfig, setRelayConfig] = useState({ teams: 2, size: 2 });
             const [turnLimit, setTurnLimit] = useState(10); 
             const [selectedPaintColor, setSelectedPaintColor] = useState(PAINT_COLORS[0]);
-            
-            // --- NEW MINIGAME STATE ---
-            const [minigameData, setMinigameData] = useState(null);
-            // --------------------------
             
             // --- SNIPER STATE ---
             const [sniperSelection, setSniperSelection] = useState([]);
@@ -1132,7 +1117,7 @@
                         else if (special.type === 'TAIL') { 
                             await sleep(800/botSpeed); 
                             const sortedByPos = [...tempPlayers]
-                                .filter(p => !p.isDead && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) // FIX: Exclude Sniper
+                                .filter(p => !p.isDead && !p.finished && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) // FIX: Exclude Finished & Sniper
                                 .sort((a,b) => b.position - a.position); 
                             const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); 
                             if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } 
@@ -1142,7 +1127,7 @@
                         else if (special.type === 'FRONT') { 
                             await sleep(800/botSpeed); 
                             const sortedBehind = [...tempPlayers]
-                                .filter(p => !p.isDead && p.position < finalPos && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) // FIX: Exclude Sniper
+                                .filter(p => !p.isDead && !p.finished && p.position < finalPos && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) // FIX: Exclude Finished & Sniper
                                 .sort((a,b) => b.position - a.position); 
                             if (sortedBehind.length > 0) { const targetPlayer = sortedBehind[0]; finalPos = Math.min(config.max, targetPlayer.position + 1); } 
                             tempPlayers[currentPlayerIdx].position = finalPos; 
@@ -1162,35 +1147,6 @@
                                 await sleep(800/botSpeed); 
                                 const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); // FIX: Exclude Sniper
                                 if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; const targetIndex = tempPlayers.findIndex(p => p.id === targetP.id); const myPos = finalPos; const theirPos = targetP.position; tempPlayers[currentPlayerIdx].position = theirPos; tempPlayers[targetIndex].position = myPos; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers }); playSound('teleport'); finalPos = theirPos; } 
-                            }
-                        }
-                        // --- MINIGAME TRIGGER ---
-                        else if (special.type === 'MINIGAME') {
-                            if (player.isBot) {
-                                // Bot Auto-Win/Loss (50/50)
-                                const won = Math.random() > 0.5;
-                                log += won ? " Bot Vince Minigioco!" : " Bot Perde Minigioco!";
-                                // Pick random opponent
-                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); // FIX: Exclude Sniper
-                                if (others.length > 0) {
-                                    const targetP = others[Math.floor(Math.random() * others.length)];
-                                    const tIdx = tempPlayers.findIndex(p => p.id === targetP.id);
-                                    if (won) {
-                                        finalPos = Math.min(config.max, finalPos + 5);
-                                        tempPlayers[tIdx].position = Math.max(0, tempPlayers[tIdx].position - 5);
-                                    } else {
-                                        finalPos = Math.max(0, finalPos - 5);
-                                        tempPlayers[tIdx].position = Math.min(config.max, tempPlayers[tIdx].position + 5);
-                                    }
-                                }
-                                tempPlayers[currentPlayerIdx].position = finalPos;
-                            } else {
-                                // Human: Open Minigame Selection
-                                tempPlayers[currentPlayerIdx].position = finalPos; // Land first
-                                setTargetSelectionMode('minigame_opponent'); // Phase 1: Pick Opponent
-                                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, lastAction: `${player.name} deve scegliere un avversario!` });
-                                setIsMoving(false);
-                                return;
                             }
                         }
                         else if (special.type === 'DECISION') {
@@ -1528,66 +1484,11 @@
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, currentTurn: nextTurn, lastAction: `${player.name} usa ${option.name}!` });
             };
 
-            // NEW MINIGAME LOGIC
-            const startMinigame = (gameType) => {
-                setMinigameData({
-                    type: gameType,
-                    gameState: 'playing', // playing, won, lost
-                    score: 0,
-                    timer: gameType === 'click' ? 4 : null,
-                    round: 0, // For Code/HighLow
-                    code: gameType === 'code' ? Math.floor(Math.random() * 10) + 1 : null,
-                    card: gameType === 'highlow' ? Math.floor(Math.random() * 10) + 1 : null,
-                    barPos: 0
-                });
-            };
-
-            const resolveMinigame = async (result) => {
-                // result: 'win' or 'lose'
-                const playerIdx = currentRoom.currentTurn;
-                const player = currentRoom.players[playerIdx];
-                const opponentUid = minigameData.opponentUid; // Set during target selection
-                
-                let tempPlayers = [...currentRoom.players];
-                const opponentIdx = tempPlayers.findIndex(p => p.uid === opponentUid);
-
-                if (result === 'win') {
-                    // Player +5, Opponent -5
-                    tempPlayers[playerIdx].position = Math.min(60, tempPlayers[playerIdx].position + 5);
-                    if (opponentIdx !== -1) {
-                        tempPlayers[opponentIdx].position = Math.max(0, tempPlayers[opponentIdx].position - 5);
-                    }
-                    playSound('win');
-                } else {
-                    // Player -5, Opponent +5
-                    tempPlayers[playerIdx].position = Math.max(0, tempPlayers[playerIdx].position - 5);
-                    if (opponentIdx !== -1) {
-                        tempPlayers[opponentIdx].position = Math.min(60, tempPlayers[opponentIdx].position + 5);
-                    }
-                    playSound('lose');
-                }
-
-                setMinigameData(null);
-                const nextTurn = getNextTurn(tempPlayers, playerIdx);
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { 
-                    players: tempPlayers, 
-                    currentTurn: nextTurn,
-                    lastAction: `${player.name} ${result === 'win' ? 'VINCE' : 'PERDE'} la sfida contro ${opponentIdx !== -1 ? tempPlayers[opponentIdx].name : 'Nessuno'}!`
-                });
-            };
-
             const handleTargetClick = async (targetUid) => {
                 if (bossTargetSelection) {
                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { bossTargetUid: targetUid });
                      setBossTargetSelection(false);
                      return;
-                }
-
-                if (targetSelectionMode === 'minigame_opponent') {
-                    setTargetSelectionMode(null);
-                    // Start Minigame Selection
-                    setMinigameData({ type: 'selection', opponentUid: targetUid });
-                    return;
                 }
 
                 if (!targetSelectionMode || !currentRoom) return;
@@ -1642,139 +1543,6 @@
                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { battleRoundConfig: nums });
                 }
             }
-
-            // Minigame Components
-            const MinigameUI = () => {
-                const [internalState, setInternalState] = useState({}); // For Bar position, Click count etc
-                
-                // Click Furioso Timer
-                useEffect(() => {
-                    if (minigameData.type === 'click' && minigameData.timer > 0) {
-                        const t = setTimeout(() => setMinigameData(prev => ({ ...prev, timer: prev.timer - 1 })), 1000);
-                        return () => clearTimeout(t);
-                    } else if (minigameData.type === 'click' && minigameData.timer === 0) {
-                        resolveMinigame(minigameData.score >= 20 ? 'win' : 'lose');
-                    }
-                }, [minigameData.timer, minigameData.type]);
-
-                const handleGameAction = (action, val) => {
-                    if (minigameData.type === 'highlow') {
-                        const nextCard = Math.floor(Math.random() * 10) + 1;
-                        const win = (action === 'high' && nextCard > minigameData.card) || (action === 'low' && nextCard < minigameData.card);
-                        if (win) {
-                            if (minigameData.round >= 2) resolveMinigame('win');
-                            else setMinigameData(prev => ({...prev, card: nextCard, round: prev.round + 1}));
-                        } else {
-                            resolveMinigame('lose');
-                        }
-                    } else if (minigameData.type === 'rps') {
-                        const cpu = ['r','p','s'][Math.floor(Math.random()*3)];
-                        if (action === cpu) return; // Draw
-                        if ((action === 'r' && cpu === 's') || (action === 'p' && cpu === 'r') || (action === 's' && cpu === 'p')) resolveMinigame('win');
-                        else resolveMinigame('lose');
-                    } else if (minigameData.type === 'code') {
-                        // val is the guess
-                        if (val === minigameData.code) resolveMinigame('win');
-                        else {
-                            if (minigameData.round >= 2) resolveMinigame('lose');
-                            else setMinigameData(prev => ({...prev, round: prev.round + 1, feedback: val > prev.code ? 'Troppo Alto' : 'Troppo Basso'}));
-                        }
-                    } else if (minigameData.type === 'click') {
-                        setMinigameData(prev => ({...prev, score: prev.score + 1}));
-                    } else if (minigameData.type === 'bar') {
-                        // Check bar position via CSS computed style
-                        const bar = document.getElementById('moving-bar');
-                        if (bar) {
-                            const parent = bar.parentElement;
-                            const barRect = bar.getBoundingClientRect();
-                            const parentRect = parent.getBoundingClientRect();
-                            const relativeLeft = ((barRect.left - parentRect.left) / parentRect.width) * 100;
-                            // Win zone 40% - 60%
-                            if (relativeLeft >= 40 && relativeLeft <= 60) resolveMinigame('win');
-                            else resolveMinigame('lose');
-                        }
-                    }
-                };
-
-                return (
-                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-                        <div className="max-w-md w-full bg-white rounded-3xl p-6 shadow-2xl border-8 border-pink-500">
-                            {minigameData.type === 'selection' && (
-                                <div className="space-y-4">
-                                    <h2 className="text-2xl font-black text-center text-pink-600 uppercase">Scegli la Sfida!</h2>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={()=>startMinigame('highlow')} className="p-4 bg-slate-100 rounded-xl hover:bg-pink-100 font-bold border-2 border-slate-200">🃏 Carta Alta/Bassa</button>
-                                        <button onClick={()=>startMinigame('rps')} className="p-4 bg-slate-100 rounded-xl hover:bg-pink-100 font-bold border-2 border-slate-200">✂️ Morra Cinese</button>
-                                        <button onClick={()=>startMinigame('code')} className="p-4 bg-slate-100 rounded-xl hover:bg-pink-100 font-bold border-2 border-slate-200">🔓 Codice Segreto</button>
-                                        <button onClick={()=>startMinigame('click')} className="p-4 bg-slate-100 rounded-xl hover:bg-pink-100 font-bold border-2 border-slate-200">⚡ Click Furioso</button>
-                                        <button onClick={()=>startMinigame('bar')} className="col-span-2 p-4 bg-slate-100 rounded-xl hover:bg-pink-100 font-bold border-2 border-slate-200">🎯 Barra Reflex</button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {minigameData.type === 'highlow' && (
-                                <div className="text-center space-y-6">
-                                    <h3 className="text-xl font-black text-slate-400">ROUND {minigameData.round+1}/3</h3>
-                                    <div className="text-6xl font-black text-indigo-900 border-4 border-indigo-200 rounded-xl py-8">{minigameData.card}</div>
-                                    <div className="flex gap-4">
-                                        <button onClick={()=>handleGameAction('low')} className="flex-1 py-4 bg-red-500 text-white font-black rounded-xl">BASSO</button>
-                                        <button onClick={()=>handleGameAction('high')} className="flex-1 py-4 bg-green-500 text-white font-black rounded-xl">ALTO</button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {minigameData.type === 'rps' && (
-                                <div className="text-center space-y-6">
-                                    <h3 className="text-xl font-black text-pink-600">MORRA CINESE</h3>
-                                    <div className="flex justify-center gap-4 text-4xl">
-                                        <button onClick={()=>handleGameAction('r')} className="p-6 bg-slate-100 rounded-full hover:scale-110 transition-transform">🪨</button>
-                                        <button onClick={()=>handleGameAction('p')} className="p-6 bg-slate-100 rounded-full hover:scale-110 transition-transform">📜</button>
-                                        <button onClick={()=>handleGameAction('s')} className="p-6 bg-slate-100 rounded-full hover:scale-110 transition-transform">✂️</button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {minigameData.type === 'click' && (
-                                <div className="text-center space-y-6">
-                                    <h3 className="text-xl font-black text-red-600 animate-pulse">CLICCA VELOCE!</h3>
-                                    <div className="text-sm font-bold">Obiettivo: 20 click</div>
-                                    <div className="flex justify-between font-black text-2xl">
-                                        <div>⏳ {minigameData.timer}s</div>
-                                        <div>👆 {minigameData.score}</div>
-                                    </div>
-                                    <button onClick={()=>handleGameAction('click')} className="w-full py-12 bg-red-500 text-white font-black text-4xl rounded-xl active:scale-95 transition-transform">CLICCA!</button>
-                                </div>
-                            )}
-
-                            {minigameData.type === 'code' && (
-                                <div className="text-center space-y-6">
-                                    <h3 className="text-xl font-black text-slate-800">INDOVINA (1-10)</h3>
-                                    <p className="text-sm font-bold text-slate-500">Tentativi rimasti: {3 - minigameData.round}</p>
-                                    {minigameData.feedback && <div className="bg-yellow-100 text-yellow-800 p-2 rounded font-bold">{minigameData.feedback}</div>}
-                                    <div className="grid grid-cols-5 gap-2">
-                                        {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                                            <button key={n} onClick={()=>handleGameAction('guess', n)} className="p-3 bg-slate-100 font-black rounded hover:bg-indigo-500 hover:text-white">{n}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {minigameData.type === 'bar' && (
-                                <div className="text-center space-y-8 py-8">
-                                    <h3 className="text-xl font-black text-green-600">FERMA NEL VERDE!</h3>
-                                    <div className="relative w-full h-8 bg-slate-200 rounded-full overflow-hidden border-2 border-slate-300">
-                                        {/* Target Zone */}
-                                        <div className="absolute left-[40%] width-[20%] h-full bg-green-400 opacity-50" style={{left: '40%', width: '20%'}}></div>
-                                        {/* Moving Bar */}
-                                        <div id="moving-bar" className="absolute top-0 bottom-0 w-2 bg-red-600 bar-moving"></div>
-                                    </div>
-                                    <button onClick={()=>handleGameAction('stop')} className="w-full py-6 bg-green-500 text-white font-black text-2xl rounded-xl shadow-lg active:translate-y-1">STOP!</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
 
             // ... (handleRoll, toggleBotMode, getNextTurn, useEffects for Bots/Rendering - NO CHANGES) ...
             
@@ -1951,8 +1719,6 @@
             return (
                 <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative">
                 
-                {minigameData && <MinigameUI />}
-
                 {(targetSelectionMode || bossTargetSelection) && canControlCurrent && (
                     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
                         <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border-4 border-indigo-500 overflow-hidden flex flex-col max-h-[80vh]">
@@ -1982,7 +1748,7 @@
                                     <div className="p-8 text-center text-slate-400 italic">Nessun bersaglio disponibile!</div>
                                 )}
                             </div>
-                            {!bossTargetSelection && <button onClick={() => {setTargetSelectionMode(null); setDecisionMode(false); setMinigameData(null);}} className="p-4 bg-slate-200 font-bold hover:bg-slate-300 transition-colors">ANNULLA</button>}
+                            {!bossTargetSelection && <button onClick={() => {setTargetSelectionMode(null); setDecisionMode(false);}} className="p-4 bg-slate-200 font-bold hover:bg-slate-300 transition-colors">ANNULLA</button>}
                         </div>
                     </div>
                 )}
@@ -2425,7 +2191,7 @@
                                         {directionChoice && canControlCurrent && (
                                             <div className="bg-white p-4 rounded-2xl shadow-2xl border-4 border-indigo-500 animate-bounce flex flex-col items-center gap-4"><h3 className="font-black text-indigo-900 uppercase">Scegli Direzione: {directionChoice.val}</h3><div className="flex gap-4 w-full"><button onClick={() => confirmGemMove(-1)} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-black uppercase flex flex-col items-center"><ArrowLeft/> Indietro</button><button onClick={() => confirmGemMove(1)} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-black uppercase flex flex-col items-center"><ArrowRight/> Avanti</button></div></div>
                                         )}
-                                        {!directionChoice && !decisionMode && !bossTargetSelection && !targetSelectionMode && !minigameData && !isSniperTurn && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {!directionChoice && !decisionMode && !bossTargetSelection && !targetSelectionMode && !isSniperTurn && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
                                             canControlCurrent ? (
                                                 <button onClick={handleRoll} disabled={isRolling || isMoving || currentPlayer.pendingTarget !== null} className={`w-full py-4 rounded-2xl font-black text-2xl shadow-xl transition-all flex items-center justify-center gap-3 border-b-8 active:translate-y-2 active:border-b-0 ${isRolling || isMoving ? 'bg-slate-300 border-slate-400' : 'bg-orange-500 text-white border-orange-700'} ${currentRoom.activeGlitch ? 'glitch-text' : ''}`}>{isRolling ? <Dice5 className="animate-spin"/> : <Dice5/>} <span>{isRolling ? "..." : (currentPlayer.pendingTarget !== null ? "CLICCA LA CASELLA!" : (currentPlayer.activeCurse ? "MALEDETTO!" : "TIRA DADO"))}</span></button>
                                             ) : (
@@ -2440,7 +2206,7 @@
                                                 )
                                             )
                                         )}
-                                        {canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !targetSelectionMode && !minigameData && !isSniperTurn && !currentPlayer.activeCurse && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !targetSelectionMode && !isSniperTurn && !currentPlayer.activeCurse && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
                                             <div className="bg-white p-3 rounded-xl shadow-lg border-2 flex flex-col gap-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
                                                 <div className="flex justify-between items-end">
                                                      <div className="text-[10px] font-black text-slate-400 uppercase mb-1">{currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId ? "DADO BOSS" : (currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid ? "DADO GUARDIA" : "Probabilità")}</div>
