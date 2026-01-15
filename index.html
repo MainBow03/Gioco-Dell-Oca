@@ -184,6 +184,7 @@
                 else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
                 else if (type === 'sniper') { osc.type = 'square'; osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(110, now + 0.3); gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
                 else if (type === 'glitch') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(50, now); osc.frequency.linearRampToValueAtTime(600, now + 0.5); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
+                else if (type === 'powerup') { osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(880, now + 0.2); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             } catch (e) { console.error(e); }
         };
 
@@ -208,7 +209,8 @@
             Swords: <SwordsIcon />,
             Coins: <Coins />,
             Scope: <Scope />,
-            Bug: <Bug />
+            Bug: <Bug />,
+            Dices: <Dices />
         };
 
         const getIcon = (icon) => {
@@ -220,17 +222,18 @@
         max: 60,
         specials: {
             6: { type: 'JUMP', val: 12, name: 'Ponte', icon: <ArrowRight />, desc: "Attraversa il ponte! Vai direttamente alla casella 12." },
-            15: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, // Sostituito MINIGAME
+            15: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, 
             16: { type: 'TELEPORT', name: 'Teletrasporto', icon: <Shuffle />, desc: "Scambio dimensionale! Vai nella casella di un giocatore a caso." },
             19: { type: 'WAIT', turns: 2, name: 'Pozzo', icon: <RefreshCcw />, desc: "Sei caduto nel Pozzo! Devi aspettare 2 turni per risalire." }, 
             22: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Scegli il tuo destino! 3 opzioni casuali." },
             25: { type: 'TAIL', name: 'In Coda', icon: <Footprints />, desc: "Ti metti in scia! Ti teletrasporti subito dietro al giocatore che ti precede in classifica." },
+            26: { type: 'EXTRA_DICE', name: 'Dado Extra', icon: <Dices />, desc: "Potenziamento! Al prossimo turno lancerai DUE dadi!" },
             28: { type: 'SWITCH', name: 'Switch', icon: <ArrowLeftRight />, desc: "Caos! Scambi la posizione con un giocatore a caso." },
             31: { type: 'WAIT', turns: 2, name: 'Pozzo 2', icon: <RefreshCcw />, desc: "Un altro pozzo! Aspetta 2 turni." },
             33: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Ti piazzi davanti! Vai alla casella davanti al giocatore che ti segue." },
             42: { type: 'BACK', val: 30, name: 'Labirinto', icon: <ArrowDown />, desc: "Ti sei perso nel Labirinto! Torni indietro alla casella 30." },
             44: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Scegli il tuo destino! 3 opzioni casuali." },
-            45: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, // Sostituito MINIGAME
+            45: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." },
             48: { type: 'TELEPORT', name: 'Teletrasporto', icon: <Shuffle />, desc: "Scambio dimensionale! Vai nella casella di un giocatore a caso." },
             51: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Strategia inversa! Ti piazzi davanti all'inseguitore." },
             52: { type: 'WAIT', turns: 2, name: 'Prigione', icon: <ShieldAlert />, desc: "Sei stato arrestato! Rimani in Prigione per 2 turni." },
@@ -392,6 +395,7 @@
                 if (special.type === 'WAIT') { bgClass = "bg-slate-300"; borderClass = "border-slate-500"; }
                 if (special.type === 'TAIL' || special.type === 'FRONT' || special.type === 'TELEPORT' || special.type === 'SWITCH') { bgClass = "bg-purple-200"; borderClass = "border-purple-400"; }
                 if (special.type === 'DECISION') { bgClass = "bg-amber-100"; borderClass = "border-amber-400"; }
+                if (special.type === 'EXTRA_DICE') { bgClass = "bg-blue-200"; borderClass = "border-blue-500"; }
                 if (special.type === 'RESTART') { bgClass = "bg-red-200"; borderClass = "border-red-500"; }
             }
 
@@ -473,6 +477,7 @@
                                     <PlayerAvatar charId={p.characterId} size="sm" border={false} />
                                 </div>
                                 {p.activeCurse && <div className="absolute -top-2 -right-2 bg-purple-900 text-white rounded-full p-0.5 border border-white z-20"><Ban size={10}/></div>}
+                                {p.extraDice && <div className="absolute -top-2 -left-2 bg-blue-500 text-white rounded-full p-0.5 border border-white z-20"><Dices size={10}/></div>}
                                 {p.uid === bossTargetUid && <div className="absolute -top-3 -right-3 text-red-600 animate-pulse z-30 drop-shadow-md"><Crosshair size={24}/></div>}
                                 {p.skipTurns > 0 && <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-white text-[10px] font-bold">{p.skipTurns}</div>}
                                 {p.finished && <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5"><Flag size={8}/></div>}
@@ -668,7 +673,8 @@
                         pendingTarget: null, activeCurse: false, pawnIdx: 0,
                         paintColor: mode === 'tiles' ? selectedPaintColor : null,
                         remainingMoves: 0,
-                        lives: 1 // Default lives for everyone
+                        lives: 1, // Default lives for everyone
+                        extraDice: false
                     };
 
                     if (mode === 'gem_hunt') playerObj.position = Math.random() > 0.5 ? 0 : 50;
@@ -726,7 +732,8 @@
                         pendingTarget: null, activeCurse: false, pawnIdx: 0,
                         paintColor: data.gameMode === 'tiles' ? selectedPaintColor : null,
                         remainingMoves: 0,
-                        lives: 1 // Default lives
+                        lives: 1, // Default lives
+                        extraDice: false
                     };
                     if (data.gameMode === 'relay') playerObj.teamId = bestTeam;
                     if (data.gameMode === 'gem_hunt') playerObj.collectedGems = [];
@@ -813,7 +820,7 @@
                      const botId = `bot_auto_${Date.now()}_${i}`;
                      const charName = ROSTER[charId].name; 
                      bots.push({
-                        uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: 0, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: null, remainingMoves: 0, lives: 1
+                        uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: 0, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: null, remainingMoves: 0, lives: 1, extraDice: false
                     });
                  }
                  try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: [...currentRoom.players, ...bots] }); } catch(e) { handleError(e); }
@@ -840,6 +847,7 @@
                     const botPlayer = {
                         uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: startPos, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: currentRoom.gameMode === 'tiles' ? PAINT_COLORS[Math.floor(Math.random() * PAINT_COLORS.length)] : null, remainingMoves: 0,
                         lives: 1, // Default lives
+                        extraDice: false,
                         ...(currentRoom.gameMode === 'relay' ? { teamId: bestTeam } : {}),
                         ...(currentRoom.gameMode === 'gem_hunt' ? { collectedGems: [] } : {}),
                         ...(currentRoom.gameMode === 'coin_collector' ? { score: 0 } : {}),
@@ -1117,7 +1125,7 @@
                         else if (special.type === 'TAIL') { 
                             await sleep(800/botSpeed); 
                             const sortedByPos = [...tempPlayers]
-                                .filter(p => !p.isDead && !p.finished && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) // FIX: Exclude Finished & Sniper
+                                .filter(p => !p.isDead && !p.finished && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) 
                                 .sort((a,b) => b.position - a.position); 
                             const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); 
                             if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } 
@@ -1127,7 +1135,7 @@
                         else if (special.type === 'FRONT') { 
                             await sleep(800/botSpeed); 
                             const sortedBehind = [...tempPlayers]
-                                .filter(p => !p.isDead && !p.finished && p.position < finalPos && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) // FIX: Exclude Finished & Sniper
+                                .filter(p => !p.isDead && !p.finished && p.position < finalPos && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) 
                                 .sort((a,b) => b.position - a.position); 
                             if (sortedBehind.length > 0) { const targetPlayer = sortedBehind[0]; finalPos = Math.min(config.max, targetPlayer.position + 1); } 
                             tempPlayers[currentPlayerIdx].position = finalPos; 
@@ -1137,7 +1145,7 @@
                             if (currentRoom.gameMode === 'hunter' && isGuard) { log += " (Immune al Teletrasporto)"; } 
                             else { 
                                 await sleep(800/botSpeed); 
-                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); // FIX: Exclude Sniper
+                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); 
                                 if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; finalPos = targetP.position; tempPlayers[currentPlayerIdx].position = finalPos; playSound('teleport'); } 
                             }
                         }
@@ -1145,7 +1153,7 @@
                             if (currentRoom.gameMode === 'hunter' && isGuard) { log += " (Immune allo Switch)"; } 
                             else { 
                                 await sleep(800/botSpeed); 
-                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); // FIX: Exclude Sniper
+                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); 
                                 if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; const targetIndex = tempPlayers.findIndex(p => p.id === targetP.id); const myPos = finalPos; const theirPos = targetP.position; tempPlayers[currentPlayerIdx].position = theirPos; tempPlayers[targetIndex].position = myPos; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers }); playSound('teleport'); finalPos = theirPos; } 
                             }
                         }
@@ -1153,7 +1161,6 @@
                             if (player.isBot) {
                                 const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)];
                                 log += ` Scelta Bot: ${picked.name}!`;
-                                // ... (Bot decision logic kept same) ...
                                 if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; }
                             } else {
                                 await sleep(500/botSpeed);
@@ -1166,6 +1173,10 @@
                                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` });
                                 setIsMoving(false); return; 
                             }
+                        }
+                        else if (special.type === 'EXTRA_DICE') {
+                             tempPlayers[currentPlayerIdx].extraDice = true;
+                             playSound('powerup');
                         }
                         if (special.type === 'WAIT') extraTurns = special.turns;
                     }
@@ -1436,7 +1447,7 @@
                     }
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
                 } catch (e) { handleError(e); }
-                setIsMoving(false);
+                setIsRolling(false);
             };
 
             const confirmGemMove = async (dir) => {
@@ -1597,6 +1608,11 @@
                     for(let i=0; i<10; i++) { setLastRoll(vals[Math.floor(Math.random() * vals.length)]); await sleep(50/botSpeed); }
                     let val = vals[Math.floor(Math.random() * vals.length)];
                     
+                    if (player.extraDice) {
+                        const secondRoll = Math.floor(Math.random() * 6) + 1;
+                        val += secondRoll;
+                    }
+                    
                     if (isGuard) val += 2;
                     if (currentRoom.activeGlitch === 'gravity') val = val * 2; // Low Gravity
                     if (currentRoom.activeGlitch === 'double_dice') val += Math.floor(Math.random() * 6) + 1; // Double Dice Glitch
@@ -1604,6 +1620,7 @@
                     setLastRoll(val); await sleep(200/botSpeed);
                     let updated = [...currentRoom.players];
                     updated[playerIdx].activeCurse = false;
+                    updated[playerIdx].extraDice = false;
                     
                     if (currentRoom.gameMode === 'gem_hunt') { 
                         val = Math.abs(val); setDirectionChoice({ val }); setIsRolling(false); return; 
@@ -1624,7 +1641,7 @@
                     if (isReverse) {
                          newPos = Math.max(0, player.position - val); 
                     } else {
-                         newPos = Math.min(maxVal, player.position + val); 
+                         newPos = Math.max(0, Math.min(maxVal, player.position + val)); 
                     }
                     
                     updated[playerIdx].pendingTarget = newPos;
@@ -2268,6 +2285,7 @@
                                         <div className="text-[10px] font-bold text-white/50 uppercase">
                                             {currentRoom.gameMode === 'tiles' ? `Tiles: ${tileCount}` : (currentRoom.gameMode === 'coin_collector' ? `${p.score || 0} Punti` : (p.isDead ? 'Eliminato' : (p.finished ? 'Qualificato' : `Casella ${p.position}`)))} 
                                             {p.activeCurse && "• Maledetto"}
+                                            {p.extraDice && "• DADI++"}
                                             {currentRoom.gameMode === 'gem_hunt' && ` • Gemme: ${p.collectedGems?.length || 0}/5`}
                                             {currentRoom.gameMode === 'lava' && ` • Vite: ${p.lives}`}
                                             {currentRoom.gameMode === 'glitch' && ` • Vite: ${p.lives}`}
