@@ -83,7 +83,7 @@
             ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
             Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
             Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind, Swords as SwordsIcon, Coins,
-            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List
+            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash
         } from 'lucide-react';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -166,6 +166,7 @@
         ].map((c, i) => ({ ...c, id: i }));
 
         const BOSS_DICE_VALS = [3, 4, 5, 6, 7, 8];
+        const TOURNAMENT_POINTS = [10, 8, 6, 5, 4, 3, 2, 1];
 
         const playSound = (type) => {
             try {
@@ -218,7 +219,9 @@
             Coins: <Coins />,
             Scope: <Scope />,
             Bug: <Bug />,
-            Dices: <Dices />
+            Dices: <Dices />,
+            List: <List />,
+            Hash: <Hash />
         };
 
         const getIcon = (icon) => {
@@ -353,7 +356,7 @@
         );
         };
 
-        const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCellClick, onInfoClick, gems, infected, isTargetSelection, lavaTiles, blackHolePos, bossTargetUid, tileOwnerColor, isValidMoveTarget, isTilesMode, isReverse, isBattleRoyale, coinLocations, sniperTargets, activeGlitch, currentUserId, voidTiles, warningTiles }) => {
+        const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCellClick, onInfoClick, gems, infected, isTargetSelection, lavaTiles, blackHolePos, bossTargetUid, tileOwnerColor, isValidMoveTarget, isTilesMode, isReverse, isBattleRoyale, coinLocations, sniperTargets, activeGlitch, currentUserId, voidTiles, warningTiles, isTournament }) => {
             let bgClass = "bg-slate-100";
             let borderClass = "border-slate-300";
             let cursorClass = "cursor-pointer"; 
@@ -537,6 +540,12 @@
 
             const [botSpeed, setBotSpeed] = useState(1);
             const [brConfigInput, setBrConfigInput] = useState("");
+            
+            // Tournament Config
+            const [tournamentRounds, setTournamentRounds] = useState(3);
+            
+            // Bot Timer Ref
+            const lastBotTurnRef = useRef({ turn: -1, timestamp: 0 });
 
             const handleError = (error) => {
                 console.error("Errore rilevato:", error);
@@ -550,7 +559,6 @@
                 else setBotSpeed(1); // Reset
             };
 
-            // ... (generateEliminationSpecials, generateCoins remain same) ...
             const generateEliminationSpecials = () => {
                 const max = 34;
                 const pool = [
@@ -686,6 +694,11 @@
                         extraData.warningTiles = [];
                         extraData.lavaTiles = [];
                     }
+                    if (mode === 'tournament') {
+                        extraData.maxPlayers = 8;
+                        extraData.tournamentTotalRounds = tournamentRounds;
+                        extraData.tournamentRoundsConfig = [2, 3, 4];
+                    }
 
                     const playerObj = { 
                         uid: user.uid, name: nickname, characterId: charId, position: 0, 
@@ -694,7 +707,8 @@
                         paintColor: mode === 'tiles' ? selectedPaintColor : null,
                         remainingMoves: 0,
                         lives: 1, // Default lives for everyone
-                        extraDice: false
+                        extraDice: false,
+                        score: 0 // Tournament Score
                     };
 
                     if (mode === 'gem_hunt') playerObj.position = Math.random() > 0.5 ? 0 : 50;
@@ -734,6 +748,11 @@
                     if (!snap.exists()) { setErrorMsg(`Stanza ${cleanCode} non trovata!`); return; }
                     const data = snap.data();
                     if (data.status !== 'waiting') { setErrorMsg("La partita è già iniziata!"); return; }
+                    
+                    if (data.gameMode === 'tournament' && data.players.length >= 8) {
+                        setErrorMsg("Torneo Pieno (Max 8)!"); return;
+                    }
+
                     setRoomCode(cleanCode);
                     if (data.players.some(p => p.uid === user.uid)) { setView('lobby'); return; }
                     const available = ROSTER.map(c=>c.id).filter(id => !data.players.some(p=>p.characterId === id));
@@ -756,7 +775,8 @@
                         paintColor: data.gameMode === 'tiles' ? selectedPaintColor : null,
                         remainingMoves: 0,
                         lives: 1, // Default lives
-                        extraDice: false
+                        extraDice: false,
+                        score: 0
                     };
                     if (data.gameMode === 'relay') playerObj.teamId = bestTeam;
                     if (data.gameMode === 'gem_hunt') playerObj.collectedGems = [];
@@ -815,21 +835,21 @@
                     } else if (currentRoom.gameMode === 'hunter') {
                          gamePlayers = gamePlayers.map(p => ({ ...p, id: p.uid, position: p.uid === currentRoom.guardUid ? 0 : 20 }));
                     } else if (currentRoom.gameMode === 'battle_royale') {
-                        // Use Custom Configuration for Initial Round
                         const config = currentRoom.battleRoundConfig || [16, 8, 4, 2, 1];
                         updates.qualifyLimit = config.length > 0 ? config[0] : 1;
                         gamePlayers = gamePlayers.map(p => ({...p, id: p.uid}));
                     } else if (currentRoom.gameMode === 'sniper') {
-                        // Ensure sniper is at 60 and others at 0
                         gamePlayers = gamePlayers.map(p => ({ ...p, id: p.uid, position: p.uid === currentRoom.sniperUid ? 60 : 0 }));
                     } else if (currentRoom.gameMode === 'brawl') {
-                        // Scatter players on 8x8 grid (0-63)
                         const positions = [];
                         while(positions.length < gamePlayers.length) {
                              const r = Math.floor(Math.random() * 64);
                              if (!positions.includes(r)) positions.push(r);
                         }
                         gamePlayers = gamePlayers.map((p, i) => ({ ...p, id: p.uid, position: positions[i] }));
+                    } else if (currentRoom.gameMode === 'tournament') {
+                        updates.tournamentTotalRounds = tournamentRounds;
+                        gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, score: 0}));
                     } else { 
                         gamePlayers = gamePlayers.map(p => ({...p, id: p.uid})); 
                     }
@@ -841,7 +861,7 @@
 
             const fillLobbyBots = async () => {
                  if (!currentRoom || !user) return;
-                 const needed = 32 - currentRoom.players.length;
+                 const needed = (currentRoom.gameMode === 'tournament' ? 8 : 32) - currentRoom.players.length;
                  if (needed <= 0) return;
                  const bots = [];
                  const usedChars = new Set(currentRoom.players.map(p => p.characterId));
@@ -852,7 +872,7 @@
                      const botId = `bot_auto_${Date.now()}_${i}`;
                      const charName = ROSTER[charId].name; 
                      bots.push({
-                        uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: 0, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: null, remainingMoves: 0, lives: 1, extraDice: false
+                        uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: 0, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: null, remainingMoves: 0, lives: 1, extraDice: false, score: 0
                     });
                  }
                  try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: [...currentRoom.players, ...bots] }); } catch(e) { handleError(e); }
@@ -860,6 +880,8 @@
 
             const addBot = async () => {
                  if (!currentRoom || !user) return;
+                 if (currentRoom.gameMode === 'tournament' && currentRoom.players.length >= 8) { setErrorMsg("Torneo Pieno!"); return; }
+
                 try {
                     const availableChars = ROSTER.map(c => c.id).filter(id => !currentRoom.players.some(p => p.characterId === id));
                     const charId = availableChars.length > 0 ? availableChars[Math.floor(Math.random() * availableChars.length)] : 0;
@@ -880,6 +902,7 @@
                         uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: startPos, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: currentRoom.gameMode === 'tiles' ? PAINT_COLORS[Math.floor(Math.random() * PAINT_COLORS.length)] : null, remainingMoves: 0,
                         lives: 1, // Default lives
                         extraDice: false,
+                        score: 0,
                         ...(currentRoom.gameMode === 'relay' ? { teamId: bestTeam } : {}),
                         ...(currentRoom.gameMode === 'gem_hunt' ? { collectedGems: [] } : {}),
                         ...(currentRoom.gameMode === 'coin_collector' ? { score: 0 } : {}),
@@ -973,43 +996,22 @@
                      let tempPlayers = [...currentRoom.players];
                      let newTileOwners = { ...currentRoom.tileOwners };
                      
-                     // BRAWL ARENA: Push mechanic
                      if (currentRoom.gameMode === 'brawl') {
                          const targetOccupant = tempPlayers.find(p => p.position === targetPos && !p.isDead && p.uid !== playerId);
                          if (targetOccupant) {
                              const occupantIdx = tempPlayers.findIndex(p => p.uid === targetOccupant.uid);
-                             // Push direction based on movement
                              const myCoords = getCoords(player.position, 8);
                              const targetCoords = getCoords(targetPos, 8);
                              const dx = targetCoords.x - myCoords.x;
                              const dy = targetCoords.y - myCoords.y;
-                             
                              let pushX = targetCoords.x + (dx * 2);
                              let pushY = targetCoords.y + (dy * 2);
-                             
-                             // Clamp push to grid size? Or allow push off map?
-                             // Let's say off map = death/void check handled by void check later
                              let pushIdx = -1;
-                             if (pushX >= 0 && pushX < 8 && pushY >= 0 && pushY < 8) {
-                                 pushIdx = pushY * 8 + pushX;
-                             } else {
-                                 // Pushed out of bounds!
-                                 pushIdx = -999; 
-                             }
-
-                             if (pushIdx === -999 || (currentRoom.voidTiles && currentRoom.voidTiles.includes(pushIdx))) {
-                                 tempPlayers[occupantIdx].lives -= 1;
-                                 tempPlayers[occupantIdx].isDead = true; 
-                                 playSound('punch');
-                             } else {
-                                 tempPlayers[occupantIdx].position = pushIdx;
-                                 playSound('punch');
-                                 // Check if landed on lava
-                                 if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(pushIdx)) {
-                                     tempPlayers[occupantIdx].lives -= 1;
-                                     if (tempPlayers[occupantIdx].lives <= 0) tempPlayers[occupantIdx].isDead = true;
-                                     playSound('fire');
-                                 }
+                             if (pushX >= 0 && pushX < 8 && pushY >= 0 && pushY < 8) { pushIdx = pushY * 8 + pushX; } else { pushIdx = -999; }
+                             if (pushIdx === -999 || (currentRoom.voidTiles && currentRoom.voidTiles.includes(pushIdx))) { tempPlayers[occupantIdx].lives -= 1; tempPlayers[occupantIdx].isDead = true; playSound('punch'); } 
+                             else { 
+                                 tempPlayers[occupantIdx].position = pushIdx; playSound('punch'); 
+                                 if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(pushIdx)) { tempPlayers[occupantIdx].lives -= 1; if (tempPlayers[occupantIdx].lives <= 0) tempPlayers[occupantIdx].isDead = true; playSound('fire'); }
                              }
                          }
                      }
@@ -1030,11 +1032,7 @@
                             updates.coinLocations = newCoins;
                             updates.lastAction = `${player.name} prende moneta da ${coin.val}!`;
                             playSound('gem');
-                            if (tempPlayers[currentPlayerIdx].score >= currentRoom.maxScore) {
-                                updates.status = 'finished';
-                                updates.winner = `${player.name} VINCE CON ${tempPlayers[currentPlayerIdx].score} PUNTI!`;
-                                tempPlayers[currentPlayerIdx].finished = true;
-                            }
+                            if (tempPlayers[currentPlayerIdx].score >= currentRoom.maxScore) { updates.status = 'finished'; updates.winner = `${player.name} VINCE CON ${tempPlayers[currentPlayerIdx].score} PUNTI!`; tempPlayers[currentPlayerIdx].finished = true; }
                         }
                      } else if (currentRoom.gameMode === 'tiles') {
                          newTileOwners[targetPos] = player.paintColor;
@@ -1046,96 +1044,41 @@
                          const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                          if (nextTurn <= currentPlayerIdx) {
                               const newRound = (currentRoom.round || 1) + 1;
-                              
                               if (currentRoom.gameMode === 'brawl') {
                                    updates.round = newRound;
-                                   
-                                   // WARNING LOGIC (Round 3, 7, 11...)
                                    if (newRound % 4 === 3) {
                                        const currentMapSize = currentRoom.mapSize || 8;
                                        const nextMapSize = currentMapSize - 1;
                                        const newWarnings = [];
-                                       for(let i=0; i<64; i++) {
-                                           const {x, y} = getCoords(i, 8);
-                                           if ((x >= nextMapSize || y >= nextMapSize) && (!currentRoom.voidTiles || !currentRoom.voidTiles.includes(i))) {
-                                               newWarnings.push(i);
-                                           }
-                                       }
-                                       updates.warningTiles = newWarnings;
-                                       updates.lastAction = "ATTENZIONE! LA MAPPA STA PER RESTRINGERSI!";
-                                       playSound('siren');
+                                       for(let i=0; i<64; i++) { const {x, y} = getCoords(i, 8); if ((x >= nextMapSize || y >= nextMapSize) && (!currentRoom.voidTiles || !currentRoom.voidTiles.includes(i))) { newWarnings.push(i); } }
+                                       updates.warningTiles = newWarnings; updates.lastAction = "ATTENZIONE! LA MAPPA STA PER RESTRINGERSI!"; playSound('siren');
                                    }
-
-                                   // SHRINK LOGIC (Round 4, 8, 12...)
                                    if (newRound % 4 === 0) {
                                        const currentMapSize = currentRoom.mapSize || 8;
                                        const nextMapSize = currentMapSize - 1;
-                                       
-                                       // Add warned tiles to void
                                        const newVoids = [...(currentRoom.voidTiles || [])];
                                        const warnings = currentRoom.warningTiles || [];
                                        warnings.forEach(t => { if(!newVoids.includes(t)) newVoids.push(t); });
-                                       
-                                       updates.voidTiles = newVoids;
-                                       updates.warningTiles = [];
-                                       updates.mapSize = nextMapSize;
-                                       updates.lastAction = "LA MAPPA SI È RISTRETTA!";
-                                       playSound('boss_hit');
-
-                                       // Kill players in void
-                                       tempPlayers = tempPlayers.map(p => {
-                                           if (newVoids.includes(p.position) && !p.isDead) {
-                                               return { ...p, isDead: true, lives: 0 };
-                                           }
-                                           return p;
-                                       });
-                                       updates.players = tempPlayers;
+                                       updates.voidTiles = newVoids; updates.warningTiles = []; updates.mapSize = nextMapSize; updates.lastAction = "LA MAPPA SI È RISTRETTA!"; playSound('boss_hit');
+                                       tempPlayers = tempPlayers.map(p => { if (newVoids.includes(p.position) && !p.isDead) { return { ...p, isDead: true, lives: 0 }; } return p; }); updates.players = tempPlayers;
                                    }
-
-                                   // LAVA LOGIC (Round 5, 10...)
                                    if (newRound % 5 === 0) {
-                                       let newLava = [];
-                                       const voids = currentRoom.voidTiles || [];
-                                       const currentLava = currentRoom.lavaTiles || [];
-                                       let attempts = 0;
-                                       // Add 3 random lava tiles
-                                       while(newLava.length < 3 && attempts < 100) {
-                                           const r = Math.floor(Math.random() * 64);
-                                           if (!voids.includes(r) && !currentLava.includes(r) && !newLava.includes(r)) {
-                                               newLava.push(r);
-                                           }
-                                           attempts++;
-                                       }
-                                       updates.lavaTiles = [...currentLava, ...newLava];
-                                       updates.lastAction = "LAVA EMERSA!";
-                                       playSound('fire');
+                                       let newLava = []; const voids = currentRoom.voidTiles || []; const currentLava = currentRoom.lavaTiles || []; let attempts = 0;
+                                       while(newLava.length < 3 && attempts < 100) { const r = Math.floor(Math.random() * 64); if (!voids.includes(r) && !currentLava.includes(r) && !newLava.includes(r)) { newLava.push(r); } attempts++; }
+                                       updates.lavaTiles = [...currentLava, ...newLava]; updates.lastAction = "LAVA EMERSA!"; playSound('fire');
                                    }
-
-                                   // Check Win Condition
                                    const living = tempPlayers.filter(p => !p.isDead);
-                                   if (living.length <= 1 && tempPlayers.length > 1) {
-                                       updates.status = 'finished';
-                                       updates.winner = living.length === 1 ? `${living[0].name} È L'ULTIMO SOPRAVVISSUTO!` : "TUTTI MORTI!";
-                                       playSound('win');
-                                   }
+                                   if (living.length <= 1 && tempPlayers.length > 1) { updates.status = 'finished'; updates.winner = living.length === 1 ? `${living[0].name} È L'ULTIMO SOPRAVVISSUTO!` : "TUTTI MORTI!"; playSound('win'); }
                               }
-                              else if (currentRoom.gameMode === 'tiles' && newRound > currentRoom.maxRounds) {
-                                   updates.status = 'finished';
-                                   updates.winner = "GARA TERMINATA! CALCOLO PUNTEGGI...";
-                              } else {
-                                   updates.round = newRound;
-                                   if (currentRoom.gameMode === 'tiles' && newRound > currentRoom.maxRounds) {
-                                       updates.status = 'finished';
-                                   } else {
-                                       if (currentRoom.gameMode === 'tiles') updates.lastAction = `ROUND ${newRound} DI ${currentRoom.maxRounds}!`;
-                                   }
-                              }
+                              else if (currentRoom.gameMode === 'tiles' && newRound > currentRoom.maxRounds) { updates.status = 'finished'; updates.winner = "GARA TERMINATA! CALCOLO PUNTEGGI..."; } 
+                              else { updates.round = newRound; if (currentRoom.gameMode === 'tiles') updates.lastAction = `ROUND ${newRound} DI ${currentRoom.maxRounds}!`; }
                          }
                          updates.currentTurn = nextTurn;
                      }
                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
-                 } catch(e) { handleError(e); }
-                 setIsMoving(false);
+                 } catch(e) { handleError(e); } finally {
+                     setIsMoving(false);
+                 }
             };
 
             const executeMove = async (playerId, targetPos) => {
@@ -1144,124 +1087,83 @@
                 setIsMoving(true);
                 playSound('click');
                 setDirectionChoice(null);
+                
                 try {
-                    const currentPlayerIdx = currentRoom.currentTurn;
-                    const player = currentRoom.players[currentPlayerIdx];
+                    // CRITICAL FIX: Refresh Data inside function to avoid stale closures
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode));
+                    if (!snap.exists()) return;
+                    const freshRoom = snap.data();
+
+                    const currentPlayerIdx = freshRoom.currentTurn;
+                    const player = freshRoom.players[currentPlayerIdx];
+                    
+                    // Double check if we are moving the correct player
+                    if (player.uid !== playerId) {
+                         setIsMoving(false);
+                         return;
+                    }
+                    
                     const currentPos = player.position;
                     // Determine Map Config
                     let config = CLASSIC_MAP;
-                    if (currentRoom.gameMode === 'elimination') config = ELIM_MAP;
-                    if (currentRoom.gameMode === 'gem_hunt') config = GEM_MAP;
-                    if (currentRoom.gameMode === 'reverse') config = REVERSE_MAP;
-                    if (currentRoom.gameMode === 'battle_royale') config = BATTLE_ROYALE_MAP;
+                    if (freshRoom.gameMode === 'elimination') config = ELIM_MAP;
+                    if (freshRoom.gameMode === 'gem_hunt') config = GEM_MAP;
+                    if (freshRoom.gameMode === 'reverse') config = REVERSE_MAP;
+                    if (freshRoom.gameMode === 'battle_royale') config = BATTLE_ROYALE_MAP;
                     
                     let effectiveSpecials = config.specials;
-                    if (currentRoom.gameMode === 'elimination' && currentRoom.customSpecials) effectiveSpecials = currentRoom.customSpecials;
+                    if (freshRoom.gameMode === 'elimination' && freshRoom.customSpecials) effectiveSpecials = freshRoom.customSpecials;
                     
-                    const isBoss = currentRoom.gameMode === 'raid_boss' && player.uid === currentRoom.hostId;
-                    const isGuard = currentRoom.gameMode === 'hunter' && player.uid === currentRoom.guardUid;
-                    const isSniper = currentRoom.gameMode === 'sniper' && player.uid === currentRoom.sniperUid;
-                    const isReverse = currentRoom.gameMode === 'reverse';
+                    const isBoss = freshRoom.gameMode === 'raid_boss' && player.uid === freshRoom.hostId;
+                    const isGuard = freshRoom.gameMode === 'hunter' && player.uid === freshRoom.guardUid;
+                    const isSniper = freshRoom.gameMode === 'sniper' && player.uid === freshRoom.sniperUid;
+                    const isReverse = freshRoom.gameMode === 'reverse';
 
                     const steps = [];
                     const direction = targetPos >= currentPos ? 1 : -1;
                     const dist = Math.abs(targetPos - currentPos); 
                     for (let i = 1; i <= dist; i++) steps.push(currentPos + (i * direction));
                     
-                    let tempPlayers = [...currentRoom.players];
+                    let tempPlayers = [...freshRoom.players];
                     let gemsCollectedThisTurn = [...(player.collectedGems || [])];
-                    let tempGemLocations = [...(currentRoom.gemLocations || [])];
-                    let tempBossHp = currentRoom.bossHp;
+                    let tempGemLocations = [...(freshRoom.gemLocations || [])];
+                    let tempBossHp = freshRoom.bossHp;
                     let collisionLog = [];
 
                     for (let stepPos of steps) {
                         tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: stepPos };
                         
-                        // HUNTER MODE COLLISION CHECK
-                        if (currentRoom.gameMode === 'hunter') {
-                            const guards = tempPlayers.filter(p => p.uid === currentRoom.guardUid && !p.isDead);
-                            const thieves = tempPlayers.filter(p => p.uid !== currentRoom.guardUid && !p.isDead && p.position === stepPos);
-                            
-                            if (isGuard) {
-                                thieves.forEach(t => {
-                                    const tIdx = tempPlayers.findIndex(p => p.uid === t.uid);
-                                    if (tIdx !== -1) { tempPlayers[tIdx].isDead = true; tempPlayers[tIdx].finished = true; collisionLog.push(`${t.name} ARRESTATO!`); playSound('siren'); }
-                                });
-                            } else {
-                                const guardAtPos = guards.find(g => g.position === stepPos);
-                                if (guardAtPos) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; collisionLog.push(`${player.name} CORRE CONTRO LA GUARDIA! ARRESTATO!`); playSound('siren'); }
-                            }
+                        if (freshRoom.gameMode === 'hunter') {
+                            const guards = tempPlayers.filter(p => p.uid === freshRoom.guardUid && !p.isDead);
+                            const thieves = tempPlayers.filter(p => p.uid !== freshRoom.guardUid && !p.isDead && p.position === stepPos);
+                            if (isGuard) { thieves.forEach(t => { const tIdx = tempPlayers.findIndex(p => p.uid === t.uid); if (tIdx !== -1) { tempPlayers[tIdx].isDead = true; tempPlayers[tIdx].finished = true; collisionLog.push(`${t.name} ARRESTATO!`); playSound('siren'); } }); } 
+                            else { const guardAtPos = guards.find(g => g.position === stepPos); if (guardAtPos) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; collisionLog.push(`${player.name} CORRE CONTRO LA GUARDIA! ARRESTATO!`); playSound('siren'); } }
                         }
-
-                        // RAID BOSS COLLISION
-                        if (currentRoom.gameMode === 'raid_boss') {
-                            const boss = tempPlayers.find(p => p.uid === currentRoom.hostId);
-                            const raiders = tempPlayers.filter(p => p.uid !== currentRoom.hostId && !p.isDead && p.position === stepPos);
-                            
-                            if (isBoss) {
-                                raiders.forEach(r => {
-                                    const rIdx = tempPlayers.findIndex(p => p.uid === r.uid);
-                                    tempPlayers[rIdx].lives -= 1;
-                                    playSound('punch');
-                                    if (tempPlayers[rIdx].lives <= 0) tempPlayers[rIdx].isDead = true;
-                                });
-                            } else {
-                                if (boss && boss.position === stepPos) {
-                                    if (player.uid === currentRoom.bossTargetUid) {
-                                        tempPlayers[currentPlayerIdx].lives -= 1;
-                                        playSound('punch');
-                                        if (tempPlayers[currentPlayerIdx].lives <= 0) tempPlayers[currentPlayerIdx].isDead = true;
-                                    } else {
-                                        const dmg = lastRoll || 1;
-                                        tempBossHp -= dmg;
-                                        playSound('boss_hit');
-                                    }
-                                }
-                            }
+                        if (freshRoom.gameMode === 'raid_boss') {
+                            const boss = tempPlayers.find(p => p.uid === freshRoom.hostId);
+                            const raiders = tempPlayers.filter(p => p.uid !== freshRoom.hostId && !p.isDead && p.position === stepPos);
+                            if (isBoss) { raiders.forEach(r => { const rIdx = tempPlayers.findIndex(p => p.uid === r.uid); tempPlayers[rIdx].lives -= 1; playSound('punch'); if (tempPlayers[rIdx].lives <= 0) tempPlayers[rIdx].isDead = true; }); } 
+                            else { if (boss && boss.position === stepPos) { if (player.uid === freshRoom.bossTargetUid) { tempPlayers[currentPlayerIdx].lives -= 1; playSound('punch'); if (tempPlayers[currentPlayerIdx].lives <= 0) tempPlayers[currentPlayerIdx].isDead = true; } else { const dmg = lastRoll || 1; tempBossHp -= dmg; playSound('boss_hit'); } } }
                         }
-
-                        if (currentRoom.gameMode === 'gem_hunt' && tempGemLocations.includes(stepPos)) {
-                             if (!gemsCollectedThisTurn.includes(stepPos)) {
-                                 gemsCollectedThisTurn.push(stepPos);
-                                 tempPlayers[currentPlayerIdx].collectedGems = gemsCollectedThisTurn;
-                                 tempGemLocations = tempGemLocations.filter(g => g !== stepPos);
-                                 let newGem = -1;
-                                 while(newGem === -1 || tempGemLocations.includes(newGem) || newGem === stepPos || newGem === 0 || newGem === 50) newGem = Math.floor(Math.random() * 41) + 5; 
-                                 tempGemLocations.push(newGem);
-                                 playSound('gem');
-                             }
+                        if (freshRoom.gameMode === 'gem_hunt' && tempGemLocations.includes(stepPos)) {
+                             if (!gemsCollectedThisTurn.includes(stepPos)) { gemsCollectedThisTurn.push(stepPos); tempPlayers[currentPlayerIdx].collectedGems = gemsCollectedThisTurn; tempGemLocations = tempGemLocations.filter(g => g !== stepPos); let newGem = -1; while(newGem === -1 || tempGemLocations.includes(newGem) || newGem === stepPos || newGem === 0 || newGem === 50) newGem = Math.floor(Math.random() * 41) + 5; tempGemLocations.push(newGem); playSound('gem'); }
                         }
                         let intermediateUpdate = { players: tempPlayers };
-                        if (currentRoom.gameMode === 'gem_hunt') intermediateUpdate.gemLocations = tempGemLocations;
-                        if (currentRoom.gameMode === 'raid_boss') intermediateUpdate.bossHp = tempBossHp;
+                        if (freshRoom.gameMode === 'gem_hunt') intermediateUpdate.gemLocations = tempGemLocations;
+                        if (freshRoom.gameMode === 'raid_boss') intermediateUpdate.bossHp = tempBossHp;
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), intermediateUpdate);
                         if (!tempGemLocations.includes(stepPos)) playSound('step');
                         await sleep(250 / botSpeed); 
                     }
 
-                    if (tempPlayers[currentPlayerIdx].isDead) {
-                        setIsMoving(false);
-                        return;
-                    }
+                    if (tempPlayers[currentPlayerIdx].isDead) { setIsMoving(false); return; }
 
                     let finalPos = targetPos;
                     let log = `${player.name} è alla ${finalPos}.`;
                     if (collisionLog.length > 0) log += " " + collisionLog.join(" ");
 
-                    // LAVA CHECK ON ARRIVAL (Includes random_lava from glitch)
-                    if ((currentRoom.gameMode === 'lava' || currentRoom.gameMode === 'glitch' || currentRoom.activeGlitch === 'random_lava' || currentRoom.lavaTiles?.length > 0) && currentRoom.lavaTiles && currentRoom.lavaTiles.includes(finalPos)) {
-                        // Apply damage regardless of whether glitch is active, if tile is lava
-                        if (tempPlayers[currentPlayerIdx].lives !== undefined) {
-                             tempPlayers[currentPlayerIdx].lives -= 1;
-                             log += " 🔥 LAVA! -1 VITA!";
-                             playSound('fire');
-                             if (tempPlayers[currentPlayerIdx].lives <= 0) {
-                                 tempPlayers[currentPlayerIdx].isDead = true;
-                                 tempPlayers[currentPlayerIdx].finished = true; 
-                                 log += " ELIMINATO!";
-                                 playSound('skull');
-                             }
-                        }
+                    if ((freshRoom.gameMode === 'lava' || freshRoom.gameMode === 'glitch' || freshRoom.activeGlitch === 'random_lava' || freshRoom.lavaTiles?.length > 0) && freshRoom.lavaTiles && freshRoom.lavaTiles.includes(finalPos)) {
+                        if (tempPlayers[currentPlayerIdx].lives !== undefined) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🔥 LAVA! -1 VITA!"; playSound('fire'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " ELIMINATO!"; playSound('skull'); } }
                     }
 
                     let special = effectiveSpecials[finalPos];
@@ -1271,132 +1173,45 @@
                         if (special.type === 'BOOST') { await sleep(500/botSpeed); finalPos += special.val; if (finalPos < 0) finalPos = 0; if (finalPos > config.max) finalPos = config.max; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
                         else if (special.type === 'JUMP' || special.type === 'BACK' || special.type === 'RESTART') { await sleep(800/botSpeed); finalPos = special.val || 0; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
                         else if (special.type === 'DOUBLE') { await sleep(800/botSpeed); const moveAmt = dist; finalPos = finalPos + (moveAmt * direction); if (finalPos > config.max) finalPos = config.max; if (finalPos < 0) finalPos = 0; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
-                        else if (special.type === 'TAIL') { 
-                            await sleep(800/botSpeed); 
-                            const sortedByPos = [...tempPlayers]
-                                .filter(p => !p.isDead && !p.finished && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) 
-                                .sort((a,b) => b.position - a.position); 
-                            const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); 
-                            if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } 
-                            tempPlayers[currentPlayerIdx].position = finalPos; 
-                            playSound('step'); 
-                        }
-                        else if (special.type === 'FRONT') { 
-                            await sleep(800/botSpeed); 
-                            const sortedBehind = [...tempPlayers]
-                                .filter(p => !p.isDead && !p.finished && p.position < finalPos && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)) 
-                                .sort((a,b) => b.position - a.position); 
-                            if (sortedBehind.length > 0) { const targetPlayer = sortedBehind[0]; finalPos = Math.min(config.max, targetPlayer.position + 1); } 
-                            tempPlayers[currentPlayerIdx].position = finalPos; 
-                            playSound('step'); 
-                        }
-                        else if (special.type === 'TELEPORT') {
-                            if (currentRoom.gameMode === 'hunter' && isGuard) { log += " (Immune al Teletrasporto)"; } 
-                            else { 
-                                await sleep(800/botSpeed); 
-                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); 
-                                if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; finalPos = targetP.position; tempPlayers[currentPlayerIdx].position = finalPos; playSound('teleport'); } 
-                            }
-                        }
-                        else if (special.type === 'SWITCH') {
-                            if (currentRoom.gameMode === 'hunter' && isGuard) { log += " (Immune allo Switch)"; } 
-                            else { 
-                                await sleep(800/botSpeed); 
-                                const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); 
-                                if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; const targetIndex = tempPlayers.findIndex(p => p.id === targetP.id); const myPos = finalPos; const theirPos = targetP.position; tempPlayers[currentPlayerIdx].position = theirPos; tempPlayers[targetIndex].position = myPos; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers }); playSound('teleport'); finalPos = theirPos; } 
-                            }
-                        }
+                        else if (special.type === 'TAIL') { await sleep(800/botSpeed); const sortedByPos = [...tempPlayers].filter(p => !p.isDead && !p.finished && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
+                        else if (special.type === 'FRONT') { await sleep(800/botSpeed); const sortedBehind = [...tempPlayers].filter(p => !p.isDead && !p.finished && p.position < finalPos && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); if (sortedBehind.length > 0) { const targetPlayer = sortedBehind[0]; finalPos = Math.min(config.max, targetPlayer.position + 1); } tempPlayers[currentPlayerIdx].position = finalPos; playSound('step'); }
+                        else if (special.type === 'TELEPORT') { if (freshRoom.gameMode === 'hunter' && isGuard) { log += " (Immune al Teletrasporto)"; } else { await sleep(800/botSpeed); const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (freshRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)); if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; finalPos = targetP.position; tempPlayers[currentPlayerIdx].position = finalPos; playSound('teleport'); } } }
+                        else if (special.type === 'SWITCH') { if (freshRoom.gameMode === 'hunter' && isGuard) { log += " (Immune allo Switch)"; } else { await sleep(800/botSpeed); const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (freshRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)); if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; const targetIndex = tempPlayers.findIndex(p => p.id === targetP.id); const myPos = finalPos; const theirPos = targetP.position; tempPlayers[currentPlayerIdx].position = theirPos; tempPlayers[targetIndex].position = myPos; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers }); playSound('teleport'); finalPos = theirPos; } } }
                         else if (special.type === 'DECISION') {
-                            if (player.isBot) {
-                                const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)];
-                                log += ` Scelta Bot: ${picked.name}!`;
-                                if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; }
-                            } else {
-                                await sleep(500/botSpeed);
-                                const shuffled = [...DECISION_POOL].sort(() => 0.5 - Math.random());
-                                setDecisionOptions(shuffled.slice(0, 3));
-                                setDecisionMode(true);
-                                setTargetSelectionMode(null);
-                                tempPlayers[currentPlayerIdx].position = finalPos;
-                                tempPlayers[currentPlayerIdx].pendingTarget = null;
-                                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` });
-                                setIsMoving(false); return; 
-                            }
+                            if (player.isBot) { const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)]; log += ` Scelta Bot: ${picked.name}!`; if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; } } 
+                            else { await sleep(500/botSpeed); const shuffled = [...DECISION_POOL].sort(() => 0.5 - Math.random()); setDecisionOptions(shuffled.slice(0, 3)); setDecisionMode(true); setTargetSelectionMode(null); tempPlayers[currentPlayerIdx].position = finalPos; tempPlayers[currentPlayerIdx].pendingTarget = null; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` }); setIsMoving(false); return; }
                         }
-                        else if (special.type === 'EXTRA_DICE') {
-                             tempPlayers[currentPlayerIdx].extraDice = true;
-                             playSound('powerup');
-                        }
+                        else if (special.type === 'EXTRA_DICE') { tempPlayers[currentPlayerIdx].extraDice = true; playSound('powerup'); }
                         if (special.type === 'WAIT') extraTurns = special.turns;
                     }
 
-                    // SNIPER TARGET CHECK (Damage regardless of move source)
-                    if (currentRoom.gameMode === 'sniper' && currentRoom.sniperTargets && currentRoom.sniperTargets.includes(finalPos)) {
-                         if (!isSniper) { // Sniper is immune to own shots
-                             tempPlayers[currentPlayerIdx].lives -= 1;
-                             log += " 🎯 COLPITO DAL CECCHINO! -1 VITA!";
-                             playSound('sniper');
-                             if (tempPlayers[currentPlayerIdx].lives <= 0) {
-                                 tempPlayers[currentPlayerIdx].isDead = true;
-                                 log += " ELIMINATO!";
-                                 playSound('skull');
-                             }
-                         }
-                    }
-
-                    if (finalPos !== targetPos && !tempPlayers[currentPlayerIdx].isDead && currentRoom.gameMode === 'lava' && currentRoom.lavaTiles && currentRoom.lavaTiles.includes(finalPos)) {
-                        if (tempPlayers[currentPlayerIdx].lives !== undefined) {
-                            tempPlayers[currentPlayerIdx].lives -= 1;
-                            log += " 🔥 LAVA! -1 VITA!";
-                            playSound('fire');
-                            if (tempPlayers[currentPlayerIdx].lives <= 0) { 
-                                tempPlayers[currentPlayerIdx].isDead = true; 
-                                tempPlayers[currentPlayerIdx].finished = true; 
-                                log += " ELIMINATO!"; 
-                                playSound('skull'); 
-                            }
-                        }
-                    }
-
-                    if (currentRoom.gameMode === 'black_hole' && finalPos <= currentRoom.blackHolePos) {
-                        tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " RISUCCHIATO DAL BUCO NERO!"; playSound('suck');
-                    }
-                    
-                    // PUNITIVE GLITCH CHECK
-                    if (currentRoom.gameMode === 'classic_punitive' || currentRoom.activeGlitch === 'punitive_round') {
-                         const victims = tempPlayers.filter(p => p.id !== player.id && p.position === finalPos && !p.finished && !p.isDead);
-                         if (victims.length > 0) { 
-                             victims.forEach(v => { 
-                                 const vIndex = tempPlayers.findIndex(tp => tp.id === v.id); 
-                                 tempPlayers[vIndex].position = Math.max(0, v.position - 3); 
-                             }); 
-                             playSound('punch'); 
-                             log += " PUNITO!";
-                         }
-                    }
+                    if (freshRoom.gameMode === 'sniper' && freshRoom.sniperTargets && freshRoom.sniperTargets.includes(finalPos)) { if (!isSniper) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🎯 COLPITO DAL CECCHINO! -1 VITA!"; playSound('sniper'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; log += " ELIMINATO!"; playSound('skull'); } } }
+                    if (finalPos !== targetPos && !tempPlayers[currentPlayerIdx].isDead && freshRoom.gameMode === 'lava' && freshRoom.lavaTiles && freshRoom.lavaTiles.includes(finalPos)) { if (tempPlayers[currentPlayerIdx].lives !== undefined) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🔥 LAVA! -1 VITA!"; playSound('fire'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " ELIMINATO!"; playSound('skull'); } } }
+                    if (freshRoom.gameMode === 'black_hole' && finalPos <= freshRoom.blackHolePos) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " RISUCCHIATO DAL BUCO NERO!"; playSound('suck'); }
+                    if (freshRoom.gameMode === 'classic_punitive' || freshRoom.activeGlitch === 'punitive_round') { const victims = tempPlayers.filter(p => p.id !== player.id && p.position === finalPos && !p.finished && !p.isDead); if (victims.length > 0) { victims.forEach(v => { const vIndex = tempPlayers.findIndex(tp => tp.id === v.id); tempPlayers[vIndex].position = Math.max(0, v.position - 3); }); playSound('punch'); log += " PUNITO!"; } }
 
                     tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: finalPos, skipTurns: extraTurns, pendingTarget: null };
                     let updates = { players: tempPlayers, lastAction: log };
-                    if (currentRoom.gameMode === 'gem_hunt') updates.gemLocations = tempGemLocations;
-                    if (currentRoom.gameMode === 'raid_boss') updates.bossHp = tempBossHp;
+                    if (freshRoom.gameMode === 'gem_hunt') updates.gemLocations = tempGemLocations;
+                    if (freshRoom.gameMode === 'raid_boss') updates.bossHp = tempBossHp;
 
                     let justFinished = false;
                     let hasWon = false;
-                    if (currentRoom.gameMode === 'gem_hunt' && tempPlayers[currentPlayerIdx].collectedGems.length >= 5) { hasWon = true; }
-                    else if (currentRoom.gameMode === 'reverse') { if (finalPos <= 0 && !tempPlayers[currentPlayerIdx].isDead) hasWon = true; }
+                    if (freshRoom.gameMode === 'gem_hunt' && tempPlayers[currentPlayerIdx].collectedGems.length >= 5) { hasWon = true; }
+                    else if (freshRoom.gameMode === 'reverse') { if (finalPos <= 0 && !tempPlayers[currentPlayerIdx].isDead) hasWon = true; }
                     else if (finalPos === config.max && !tempPlayers[currentPlayerIdx].isDead) { 
-                        if (currentRoom.gameMode === 'raid_boss' && isBoss) { updates.status = 'finished'; updates.winner = "IL BOSS HA VINTO!"; playSound('skull'); }
-                        else if (currentRoom.gameMode === 'hunter' && isGuard) { tempPlayers[currentPlayerIdx].position = 0; updates.lastAction = (updates.lastAction || "") + " FINE PATTUGLIA! SI RICOMINCIA!"; playSound('teleport'); }
-                        else if (currentRoom.gameMode === 'sniper' && isSniper) { /* Sniper doesn't win by reaching end */ }
+                        if (freshRoom.gameMode === 'raid_boss' && isBoss) { updates.status = 'finished'; updates.winner = "IL BOSS HA VINTO!"; playSound('skull'); }
+                        else if (freshRoom.gameMode === 'hunter' && isGuard) { tempPlayers[currentPlayerIdx].position = 0; updates.lastAction = (updates.lastAction || "") + " FINE PATTUGLIA! SI RICOMINCIA!"; playSound('teleport'); }
+                        else if (freshRoom.gameMode === 'sniper' && isSniper) { }
                         else { hasWon = true; }
                     }
 
                     if (hasWon) {
                         tempPlayers[currentPlayerIdx].finished = true; playSound('win'); justFinished = true;
-                        if (currentRoom.gameMode === 'hunter') { updates.status = 'finished'; updates.winner = "LADRI VINCONO (Uno è scappato)!"; }
+                        if (freshRoom.gameMode === 'hunter') { updates.status = 'finished'; updates.winner = "LADRI VINCONO (Uno è scappato)!"; }
                     }
                     
-                    if (currentRoom.gameMode === 'raid_boss' && tempBossHp <= 0) { updates.status = 'finished'; updates.winner = "GIOCATORI VINCONO! BOSS SCONFITTO!"; playSound('win'); }
+                    if (freshRoom.gameMode === 'raid_boss' && tempBossHp <= 0) { updates.status = 'finished'; updates.winner = "GIOCATORI VINCONO! BOSS SCONFITTO!"; playSound('win'); }
                     
                     const totalPlayers = tempPlayers.length;
                     const finishedPlayers = tempPlayers.filter(p => p.finished);
@@ -1405,198 +1220,112 @@
 
                     if (justFinished) { tempPlayers[currentPlayerIdx].rank = finishedCount; log += " ARRIVATO!"; }
 
-                    if (currentRoom.gameMode === 'battle_royale' && justFinished) {
-                        if (finishedCount >= currentRoom.qualifyLimit) {
-                            const brRound = currentRoom.battleRoundIndex || 0;
-                            tempPlayers = tempPlayers.map(p => { if (!p.finished && !p.isDead) { return { ...p, isDead: true, rank: 999 }; } return p; });
-                            
-                            if (currentRoom.qualifyLimit === 1) { updates.status = 'finished'; updates.winner = `${player.name} VINCE LA BATTLE ROYALE!`; } 
-                            else {
-                                const config = currentRoom.battleRoundConfig || [];
-                                // Get next round limit. If end of config, default to 1
-                                let nextLimit = 1;
-                                if (config.length > brRound + 1) {
-                                    nextLimit = config[brRound + 1];
-                                }
-                                
-                                const survivors = tempPlayers.filter(p => p.finished);
-                                
-                                tempPlayers = tempPlayers.map(p => { 
-                                    if (p.finished && !p.isDead) { 
-                                        return { ...p, finished: false, position: 0, pendingTarget: null }; 
-                                    } 
-                                    return p; 
+                    // TOURNAMENT MODE LOGIC
+                    if (freshRoom.gameMode === 'tournament' && justFinished) {
+                        const pointsMap = TOURNAMENT_POINTS;
+                        const points = pointsMap[finishedCount - 1] || 1;
+                        tempPlayers[currentPlayerIdx].score = (tempPlayers[currentPlayerIdx].score || 0) + points;
+                        log += ` +${points} PUNTI!`;
+                        
+                        // Check if round finished
+                        const activeAlive = tempPlayers.filter(p => !p.isDead);
+                        const allFinished = activeAlive.every(p => p.finished);
+                        
+                        if (allFinished) {
+                            if (freshRoom.round < freshRoom.tournamentTotalRounds) {
+                                // Next Round
+                                tempPlayers.forEach(p => { 
+                                    if (!p.isDead) {
+                                        p.position = 0; 
+                                        p.finished = false; 
+                                    }
                                 });
-                                updates.battleRoundIndex = brRound + 1;
-                                updates.qualifyLimit = nextLimit;
-                                updates.round = (currentRoom.round || 1) + 1;
-                                updates.lastAction = `ROUND ${brRound+1} FINITO! ${totalPlayers - activePlayers.length} ELIMINATI! PROSSIMO: QUALIFICANO ${nextLimit}`;
+                                updates.round = (freshRoom.round || 1) + 1;
+                                log += " ROUND COMPLETATO!";
                                 updates.players = tempPlayers;
-                                updates.currentTurn = getNextTurn(tempPlayers, -1);
+                                updates.lastAction = log;
+                                updates.currentTurn = 0;
+                                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
+                                setIsMoving(false);
+                                return;
+                            } else {
+                                // Tournament Over
+                                const winner = [...tempPlayers].sort((a,b) => (b.score || 0) - (a.score || 0))[0];
+                                updates.status = 'finished';
+                                updates.winner = `${winner.name} VINCE CON ${winner.score} PUNTI!`;
                             }
-                        } else {
-                            const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
-                            updates.currentTurn = nextTurn;
                         }
-                    } else if (currentRoom.gameMode === 'battle_royale') {
-                        const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
-                        updates.currentTurn = nextTurn;
-                    } else if (currentRoom.gameMode === 'relay') {
-                         const teams = currentRoom.teamConfig.teams;
-                         const finishedTeams = [];
-                         for(let t=0; t<teams; t++) { if (checkTeamWin(tempPlayers, t)) finishedTeams.push(t); }
-                         if (finishedTeams.length >= teams - 1 && teams > 1) { updates.status = 'finished'; updates.winner = "GARA COMPLETATA"; } 
-                         else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
-                    } else if (currentRoom.gameMode === 'hunter') {
-                         const thieves = tempPlayers.filter(p => p.uid !== currentRoom.guardUid);
-                         const livingThieves = thieves.filter(p => !p.isDead);
-                         if (livingThieves.length === 0) { updates.status = 'finished'; updates.winner = "GUARDIA VINCE (Tutti arrestati)!"; } 
-                         else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
-                    } else if (currentRoom.gameMode === 'elimination') {
-                        const living = tempPlayers.filter(p => !p.isDead);
-                        const finishedLiving = living.filter(p => p.finished);
-                        if (finishedLiving.length === living.length - 1 && living.length > 1) {
-                            const loser = living.find(p => !p.finished);
-                            const loserIndex = tempPlayers.findIndex(p => p.id === loser.id);
-                            tempPlayers[loserIndex].isDead = true;
-                            tempPlayers.forEach(p => { if (!p.isDead) { p.position = 0; p.finished = false; } });
-                            updates.players = tempPlayers; updates.round = currentRoom.round + 1; updates.customSpecials = generateEliminationSpecials(); updates.currentTurn = 0;
-                        } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
-                    } else if (currentRoom.gameMode === 'raid_boss') {
-                        const livingRaiders = tempPlayers.filter(p => p.uid !== currentRoom.hostId && !p.isDead);
-                        if (livingRaiders.length === 0) { updates.status = 'finished'; updates.winner = "BOSS HA VINTO (TUTTI MORTI)!"; } 
-                        else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); if (nextTurn <= currentPlayerIdx) { updates.round = (currentRoom.round || 1) + 1; updates.bossTargetUid = null; } updates.currentTurn = nextTurn; }
-                    } else if (currentRoom.gameMode === 'sniper') {
-                        const livingRunners = tempPlayers.filter(p => p.uid !== currentRoom.sniperUid && !p.isDead);
-                        if (livingRunners.length === 0) { updates.status = 'finished'; updates.winner = "CECCHINO HA VINTO (TUTTI MORTI)!"; }
-                        else if (finishedCount > 0) { updates.status = 'finished'; updates.winner = "I CORRIDORI VINCONO!"; }
-                        else { 
-                            const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); 
-                            if (nextTurn <= currentPlayerIdx) { 
-                                updates.round = (currentRoom.round || 1) + 1; 
-                                updates.sniperTargets = [];
-                            } 
-                            updates.currentTurn = nextTurn; 
-                        }
-                    } else if (currentRoom.gameMode === 'lava' || currentRoom.gameMode === 'black_hole') {
-                        const living = tempPlayers.filter(p => !p.isDead);
-                        const arrived = living.filter(p => p.finished);
+                    }
 
-                        if (arrived.length >= living.length - 1 && living.length > 1) { updates.status = 'finished'; updates.winner = "GARA TERMINATA!"; } 
-                        else if (living.length === 0) { updates.status = 'finished'; updates.winner = "NESSUN SOPRAVVISSUTO!"; } 
-                        else {
+                    if (freshRoom.gameMode === 'battle_royale' && justFinished) {
+                        if (finishedCount >= freshRoom.qualifyLimit) {
+                            const brRound = freshRoom.battleRoundIndex || 0;
+                            tempPlayers = tempPlayers.map(p => { if (!p.finished && !p.isDead) { return { ...p, isDead: true, rank: 999 }; } return p; });
+                            if (freshRoom.qualifyLimit === 1) { updates.status = 'finished'; updates.winner = `${player.name} VINCE LA BATTLE ROYALE!`; } 
+                            else {
+                                const config = freshRoom.battleRoundConfig || [];
+                                let nextLimit = 1; if (config.length > brRound + 1) { nextLimit = config[brRound + 1]; }
+                                tempPlayers = tempPlayers.map(p => { if (p.finished && !p.isDead) { return { ...p, finished: false, position: 0, pendingTarget: null }; } return p; });
+                                updates.battleRoundIndex = brRound + 1; updates.qualifyLimit = nextLimit; updates.round = (freshRoom.round || 1) + 1; updates.lastAction = `ROUND ${brRound+1} FINITO! PROSSIMO: QUALIFICANO ${nextLimit}`; updates.players = tempPlayers; updates.currentTurn = getNextTurn(tempPlayers, -1);
+                            }
+                        } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
+                    } else if (freshRoom.gameMode === 'battle_royale') { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
+                    else if (freshRoom.gameMode === 'relay') { const teams = freshRoom.teamConfig.teams; const finishedTeams = []; for(let t=0; t<teams; t++) { if (checkTeamWin(tempPlayers, t)) finishedTeams.push(t); } if (finishedTeams.length >= teams - 1 && teams > 1) { updates.status = 'finished'; updates.winner = "GARA COMPLETATA"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; } } 
+                    else if (freshRoom.gameMode === 'hunter') { const thieves = tempPlayers.filter(p => p.uid !== freshRoom.guardUid); const livingThieves = thieves.filter(p => !p.isDead); if (livingThieves.length === 0) { updates.status = 'finished'; updates.winner = "GUARDIA VINCE (Tutti arrestati)!"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; } } 
+                    else if (freshRoom.gameMode === 'elimination') {
+                        const living = tempPlayers.filter(p => !p.isDead); const finishedLiving = living.filter(p => p.finished);
+                        if (finishedLiving.length === living.length - 1 && living.length > 1) { const loser = living.find(p => !p.finished); const loserIndex = tempPlayers.findIndex(p => p.id === loser.id); tempPlayers[loserIndex].isDead = true; tempPlayers.forEach(p => { if (!p.isDead) { p.position = 0; p.finished = false; } }); updates.players = tempPlayers; updates.round = freshRoom.round + 1; updates.customSpecials = generateEliminationSpecials(); updates.currentTurn = 0; } 
+                        else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
+                    } else if (freshRoom.gameMode === 'raid_boss') {
+                        const livingRaiders = tempPlayers.filter(p => p.uid !== freshRoom.hostId && !p.isDead); if (livingRaiders.length === 0) { updates.status = 'finished'; updates.winner = "BOSS HA VINTO (TUTTI MORTI)!"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); if (nextTurn <= currentPlayerIdx) { updates.round = (freshRoom.round || 1) + 1; updates.bossTargetUid = null; } updates.currentTurn = nextTurn; }
+                    } else if (freshRoom.gameMode === 'sniper') {
+                        const livingRunners = tempPlayers.filter(p => p.uid !== freshRoom.sniperUid && !p.isDead); if (livingRunners.length === 0) { updates.status = 'finished'; updates.winner = "CECCHINO HA VINTO (TUTTI MORTI)!"; } else if (finishedCount > 0) { updates.status = 'finished'; updates.winner = "I CORRIDORI VINCONO!"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); if (nextTurn <= currentPlayerIdx) { updates.round = (freshRoom.round || 1) + 1; updates.sniperTargets = []; } updates.currentTurn = nextTurn; }
+                    } else if (freshRoom.gameMode === 'lava' || freshRoom.gameMode === 'black_hole') {
+                        const living = tempPlayers.filter(p => !p.isDead); const arrived = living.filter(p => p.finished);
+                        if (arrived.length >= living.length - 1 && living.length > 1) { updates.status = 'finished'; updates.winner = "GARA TERMINATA!"; } else if (living.length === 0) { updates.status = 'finished'; updates.winner = "NESSUN SOPRAVVISSUTO!"; } else {
                             const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                             if (nextTurn <= currentPlayerIdx) {
-                                updates.round = (currentRoom.round || 1) + 1;
-                                if (currentRoom.gameMode === 'lava') {
-                                    let newLava = -1; const existingLava = currentRoom.lavaTiles || []; let attempts = 0;
-                                    while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; }
-                                    if (newLava !== -1) { updates.lavaTiles = [...existingLava, newLava]; updates.lastAction = `ROUND ${updates.round}: LAVA A ${newLava}!`; playSound('fire'); }
-                                }
-                                if (currentRoom.gameMode === 'black_hole') {
-                                    const moveAmt = ((currentRoom.round - 1) % 6) + 1;
-                                    updates.blackHolePos = (currentRoom.blackHolePos || 0) + moveAmt;
-                                    updates.lastAction = `ROUND ${updates.round}: BUCO NERO AVANZA DI ${moveAmt} (A ${updates.blackHolePos})!`;
-                                    playSound('suck');
-                                    tempPlayers = tempPlayers.map(p => { if (p.position <= updates.blackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; });
-                                    updates.players = tempPlayers;
-                                }
+                                updates.round = (freshRoom.round || 1) + 1;
+                                if (freshRoom.gameMode === 'lava') { let newLava = -1; const existingLava = freshRoom.lavaTiles || []; let attempts = 0; while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; } if (newLava !== -1) { updates.lavaTiles = [...existingLava, newLava]; updates.lastAction = `ROUND ${updates.round}: LAVA A ${newLava}!`; playSound('fire'); } }
+                                if (freshRoom.gameMode === 'black_hole') { const moveAmt = ((freshRoom.round - 1) % 6) + 1; updates.blackHolePos = (freshRoom.blackHolePos || 0) + moveAmt; updates.lastAction = `ROUND ${updates.round}: BUCO NERO AVANZA DI ${moveAmt}!`; playSound('suck'); tempPlayers = tempPlayers.map(p => { if (p.position <= updates.blackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; }); updates.players = tempPlayers; }
                             }
                             updates.currentTurn = nextTurn;
                         }
-                    } else if (currentRoom.gameMode !== 'battle_royale') {
+                    } else if (freshRoom.gameMode !== 'tournament') {
                         if (finishedCount >= totalPlayers - 1 && totalPlayers > 1) { updates.status = 'finished'; updates.winner = "TUTTI ARRIVATI!"; } 
                         else {
                             const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                             if (nextTurn <= currentPlayerIdx) {
-                                // NEW ROUND LOGIC
-                                updates.round = (currentRoom.round || 1) + 1;
-                                
-                                if (currentRoom.gameMode === 'glitch') {
+                                updates.round = (freshRoom.round || 1) + 1;
+                                if (freshRoom.gameMode === 'glitch') {
                                     if (updates.round % 3 === 0) {
                                         const glitches = ['gravity', 'darkness', 'earthquake', 'swap', 'rewind', 'cursed', 'double_dice', 'random_lava', 'black_hole_spawn', 'punitive_round'];
                                         const selected = glitches[Math.floor(Math.random() * glitches.length)];
                                         updates.activeGlitch = selected;
-                                        
-                                        let glitchMsg = "";
-                                        if (selected === 'gravity') glitchMsg = "GRAVITÀ BASSA (Dadi x2)!";
-                                        if (selected === 'darkness') glitchMsg = "BUIO TOTALE!";
-                                        if (selected === 'earthquake') glitchMsg = "TERREMOTO!";
-                                        if (selected === 'swap') glitchMsg = "SCAMBIO POSIZIONI!";
-                                        if (selected === 'rewind') glitchMsg = "REWIND (-5)!";
-                                        if (selected === 'cursed') glitchMsg = "DADI MALEDETTI!";
-                                        if (selected === 'double_dice') glitchMsg = "DOPPI DADI! (Tiri 2 dadi)";
-                                        if (selected === 'random_lava') glitchMsg = "IL SUOLO È LAVA! (Nuova casella infuocata)";
-                                        if (selected === 'black_hole_spawn') glitchMsg = "SINGOLARITÀ! (Buco nero avanza)";
-                                        if (selected === 'punitive_round') glitchMsg = "COLLISIONI PUNITIVE! (Spingi via gli avversari)";
-
-                                        updates.lastAction = `GLITCH ATTIVATO: ${glitchMsg}`;
-                                        playSound('glitch');
-
-                                        // Apply immediate glitches
-                                        if (selected === 'earthquake') {
-                                            tempPlayers = tempPlayers.map(p => {
-                                                if(p.isDead || p.finished) return p;
-                                                const shift = Math.floor(Math.random() * 7) - 3; // -3 to +3
-                                                return { ...p, position: Math.max(0, Math.min(60, p.position + shift)) };
-                                            });
-                                            updates.players = tempPlayers;
-                                        } else if (selected === 'rewind') {
-                                             tempPlayers = tempPlayers.map(p => {
-                                                if(p.isDead || p.finished) return p;
-                                                return { ...p, position: Math.max(0, p.position - 5) };
-                                            });
-                                            updates.players = tempPlayers;
-                                        } else if (selected === 'swap') {
-                                            const activeIndices = tempPlayers.map((p, i) => ({...p, idx: i})).filter(p => !p.isDead && !p.finished);
-                                            if (activeIndices.length > 1) {
-                                                const positions = activeIndices.map(p => p.position);
-                                                // Rotate positions right
-                                                const lastPos = positions.pop();
-                                                positions.unshift(lastPos);
-                                                activeIndices.forEach((p, i) => {
-                                                    tempPlayers[p.idx].position = positions[i];
-                                                });
-                                                updates.players = tempPlayers;
-                                            }
-                                        } else if (selected === 'random_lava') {
-                                            let newLava = -1; const existingLava = currentRoom.lavaTiles || []; let attempts = 0;
-                                            while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; }
-                                            if (newLava !== -1) { 
-                                                updates.lavaTiles = [...existingLava, newLava]; 
-                                            }
-                                        } else if (selected === 'black_hole_spawn') {
-                                            // Increase black hole size
-                                            const newBlackHolePos = (currentRoom.blackHolePos || 0) + 3;
-                                            updates.blackHolePos = newBlackHolePos;
-                                            tempPlayers = tempPlayers.map(p => { 
-                                                if (p.position <= newBlackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } 
-                                                return p; 
-                                            });
-                                            updates.players = tempPlayers;
-                                            playSound('suck');
-                                        }
-
-                                    } else {
-                                        updates.activeGlitch = null;
-                                        updates.lastAction = `ROUND ${updates.round}: Glitch Disattivato.`;
-                                    }
+                                        let glitchMsg = ""; if (selected === 'gravity') glitchMsg = "GRAVITÀ BASSA!"; if (selected === 'darkness') glitchMsg = "BUIO TOTALE!"; if (selected === 'earthquake') glitchMsg = "TERREMOTO!"; if (selected === 'swap') glitchMsg = "SCAMBIO POSIZIONI!"; if (selected === 'rewind') glitchMsg = "REWIND (-5)!"; if (selected === 'cursed') glitchMsg = "DADI MALEDETTI!"; if (selected === 'double_dice') glitchMsg = "DOPPI DADI!"; if (selected === 'random_lava') glitchMsg = "IL SUOLO È LAVA!"; if (selected === 'black_hole_spawn') glitchMsg = "SINGOLARITÀ!"; if (selected === 'punitive_round') glitchMsg = "COLLISIONI PUNITIVE!";
+                                        updates.lastAction = `GLITCH ATTIVATO: ${glitchMsg}`; playSound('glitch');
+                                        if (selected === 'earthquake') { tempPlayers = tempPlayers.map(p => { if(p.isDead || p.finished) return p; const shift = Math.floor(Math.random() * 7) - 3; return { ...p, position: Math.max(0, Math.min(60, p.position + shift)) }; }); updates.players = tempPlayers; } 
+                                        else if (selected === 'rewind') { tempPlayers = tempPlayers.map(p => { if(p.isDead || p.finished) return p; return { ...p, position: Math.max(0, p.position - 5) }; }); updates.players = tempPlayers; } 
+                                        else if (selected === 'swap') { const activeIndices = tempPlayers.map((p, i) => ({...p, idx: i})).filter(p => !p.isDead && !p.finished); if (activeIndices.length > 1) { const positions = activeIndices.map(p => p.position); const lastPos = positions.pop(); positions.unshift(lastPos); activeIndices.forEach((p, i) => { tempPlayers[p.idx].position = positions[i]; }); updates.players = tempPlayers; } } 
+                                        else if (selected === 'random_lava') { let newLava = -1; const existingLava = freshRoom.lavaTiles || []; let attempts = 0; while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; } if (newLava !== -1) { updates.lavaTiles = [...existingLava, newLava]; } } 
+                                        else if (selected === 'black_hole_spawn') { const newBlackHolePos = (freshRoom.blackHolePos || 0) + 3; updates.blackHolePos = newBlackHolePos; tempPlayers = tempPlayers.map(p => { if (p.position <= newBlackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; }); updates.players = tempPlayers; playSound('suck'); }
+                                    } else { updates.activeGlitch = null; updates.lastAction = `ROUND ${updates.round}: Glitch Disattivato.`; }
                                 }
-
-                                if (currentRoom.gameMode === 'infection' && updates.round > 3) {
-                                    const infectionSteps = [2, 3, 5, 7, 8]; const roll = infectionSteps[Math.floor(Math.random() * infectionSteps.length)]; const oldNpcPos = currentRoom.infectedNPC.position; const newNpcPos = oldNpcPos + roll;
-                                    updates['infectedNPC.position'] = newNpcPos; updates['infectedNPC.lastMovedRound'] = updates.round;
-                                    let killCount = 0;
-                                    tempPlayers = tempPlayers.map(p => { if (!p.isDead && !p.finished && p.position <= newNpcPos) { killCount++; return { ...p, isDead: true, position: 0 }; } return p; });
-                                    updates.players = tempPlayers; updates.lastAction = `ROUND ${updates.round}: Virus avanza di ${roll}! ${killCount > 0 ? killCount + ' presi!' : ''}`; playSound('zombie');
-                                }
+                                if (freshRoom.gameMode === 'infection' && updates.round > 3) { const infectionSteps = [2, 3, 5, 7, 8]; const roll = infectionSteps[Math.floor(Math.random() * infectionSteps.length)]; const oldNpcPos = freshRoom.infectedNPC.position; const newNpcPos = oldNpcPos + roll; updates['infectedNPC.position'] = newNpcPos; updates['infectedNPC.lastMovedRound'] = updates.round; let killCount = 0; tempPlayers = tempPlayers.map(p => { if (!p.isDead && !p.finished && p.position <= newNpcPos) { killCount++; return { ...p, isDead: true, position: 0 }; } return p; }); updates.players = tempPlayers; updates.lastAction = `ROUND ${updates.round}: Virus avanza di ${roll}! ${killCount > 0 ? killCount + ' presi!' : ''}`; playSound('zombie'); }
                             }
                             updates.currentTurn = nextTurn;
                         }
+                    } else {
+                        // Tournament mode turn logic (if not everyone finished)
+                        const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
+                        updates.currentTurn = nextTurn;
                     }
+
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
-                } catch (e) { handleError(e); }
-                setIsRolling(false);
+                } catch (e) { handleError(e); } finally {
+                    setIsRolling(false);
+                    setIsMoving(false); // Ensure moving lock is released even if error
+                }
             };
 
             const confirmGemMove = async (dir) => {
@@ -1620,23 +1349,9 @@
                 let updatedPlayers = [...currentRoom.players];
                 updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
 
-                if (option.id === 'all_1_me_3') { 
-                    updatedPlayers = updatedPlayers.map(p => { 
-                        if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; 
-                        let move = (p.id === player.id) ? 3 : 1; 
-                        return { ...p, position: Math.min(p.position + move, 60) }; 
-                    }); 
-                }
-                else if (option.id === 'teleport') { 
-                    const others = updatedPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); 
-                    if (others.length > 0) { const target = others[Math.floor(Math.random() * others.length)]; updatedPlayers[playerIdx].position = target.position; playSound('teleport'); } 
-                }
-                else if (option.id === 'reroll') { 
-                    setDecisionMode(false); 
-                    setDecisionOptions([]); 
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} tira di nuovo!` });
-                    return; 
-                }
+                if (option.id === 'all_1_me_3') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; let move = (p.id === player.id) ? 3 : 1; return { ...p, position: Math.min(p.position + move, 60) }; }); }
+                else if (option.id === 'teleport') { const others = updatedPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); if (others.length > 0) { const target = others[Math.floor(Math.random() * others.length)]; updatedPlayers[playerIdx].position = target.position; playSound('teleport'); } }
+                else if (option.id === 'reroll') { setDecisionMode(false); setDecisionOptions([]); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} tira di nuovo!` }); return; }
                 else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 4, 60); }
                 
                 setDecisionMode(false); setDecisionOptions([]);
@@ -1645,20 +1360,13 @@
             };
 
             const handleTargetClick = async (targetUid) => {
-                if (bossTargetSelection) {
-                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { bossTargetUid: targetUid });
-                     setBossTargetSelection(false);
-                     return;
-                }
-
+                if (bossTargetSelection) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { bossTargetUid: targetUid }); setBossTargetSelection(false); return; }
                 if (!targetSelectionMode || !currentRoom) return;
                 const targetIdx = currentRoom.players.findIndex(p => p.uid === targetUid);
                 const playerIdx = currentRoom.currentTurn;
                 if (targetIdx === -1 || targetIdx === playerIdx) return;
                 let updatedPlayers = [...currentRoom.players];
-                
                 updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
-
                 if (targetSelectionMode === 'target_back_4') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 4); playSound('punch'); }
                 else if (targetSelectionMode === 'curse') { updatedPlayers[targetIdx].activeCurse = true; playSound('curse'); }
                 setTargetSelectionMode(null); setDecisionMode(false); setDecisionOptions([]);
@@ -1666,147 +1374,97 @@
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, currentTurn: nextTurn, lastAction: `${updatedPlayers[playerIdx].name} colpisce ${updatedPlayers[targetIdx].name}!` });
             };
             
-            // SNIPER LOGIC
-            const handleSniperTileClick = (idx) => {
-                if (currentRoom.gameMode !== 'sniper' || !canControlCurrent) return;
-                let newSelection = [...sniperSelection];
-                if (newSelection.includes(idx)) newSelection = newSelection.filter(i => i !== idx);
-                else if (newSelection.length < 3) newSelection.push(idx);
-                setSniperSelection(newSelection);
-            };
+            const handleSniperTileClick = (idx) => { if (currentRoom.gameMode !== 'sniper' || !canControlCurrent) return; let newSelection = [...sniperSelection]; if (newSelection.includes(idx)) newSelection = newSelection.filter(i => i !== idx); else if (newSelection.length < 3) newSelection.push(idx); setSniperSelection(newSelection); };
+            const confirmSniperShot = async () => { if (sniperSelection.length === 0) return; const playerIdx = currentRoom.currentTurn; const player = currentRoom.players[playerIdx]; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { sniperTargets: sniperSelection, lastAction: `${player.name} ha mirato su ${sniperSelection.length} caselle!`, currentTurn: getNextTurn(currentRoom.players, playerIdx) }); setSniperSelection([]); };
 
-            const confirmSniperShot = async () => {
-                if (sniperSelection.length === 0) return;
-                
-                const playerIdx = currentRoom.currentTurn;
-                const player = currentRoom.players[playerIdx];
-                
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { 
-                    sniperTargets: sniperSelection,
-                    lastAction: `${player.name} ha mirato su ${sniperSelection.length} caselle!`,
-                    currentTurn: getNextTurn(currentRoom.players, playerIdx)
-                });
-                setSniperSelection([]);
-            };
-
-            // BR Config Sync
             useEffect(() => {
-                if (currentRoom && currentRoom.gameMode === 'battle_royale' && currentRoom.battleRoundConfig && !brConfigInput) {
-                    setBrConfigInput(currentRoom.battleRoundConfig.join(", "));
-                }
+                if (currentRoom && currentRoom.gameMode === 'battle_royale' && currentRoom.battleRoundConfig && !brConfigInput) { setBrConfigInput(currentRoom.battleRoundConfig.join(", ")); }
             }, [currentRoom]);
 
-            const updateBrConfig = async (val) => {
-                setBrConfigInput(val);
-                const nums = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0);
-                if (nums.length > 0 && currentRoom) {
-                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { battleRoundConfig: nums });
-                }
-            }
+            const updateBrConfig = async (val) => { setBrConfigInput(val); const nums = val.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0); if (nums.length > 0 && currentRoom) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { battleRoundConfig: nums }); } }
 
-            // ... (handleRoll, toggleBotMode, getNextTurn, useEffects for Bots/Rendering - NO CHANGES) ...
-            
-            // UI Render Helpers
             const handleRoll = async () => {
                 if (isRolling || isMoving || !currentRoom) return;
-                const playerIdx = currentRoom.currentTurn;
-                const player = currentRoom.players[playerIdx];
-                const me = currentRoom.players.find(p => p.uid === user.uid);
                 
-                const teamMode = currentRoom.teamBotModes?.[player.teamId] || 'auto';
-                
-                // Allow host to control ANY bot if it's supposed to auto-run
-                const isAutoBot = player.isBot && teamMode === 'auto' && currentRoom.hostId === user.uid;
-                
-                const isMyTeamManualBot = player.isBot && currentRoom.gameMode === 'relay' && me && player.teamId === me.teamId && teamMode === 'manual';
-                
-                // For Non-Relay generic bots:
-                const genericBotMode = currentRoom.teamBotModes?.[player.uid] || 'auto';
-                const isHostControllingBot = player.isBot && currentRoom.gameMode !== 'relay' && currentRoom.hostId === user.uid;
-                
-                if (player.uid !== user.uid && !isMyTeamManualBot && !isAutoBot && !isHostControllingBot) return;
-                
+                // Force reset lock if it gets stuck for too long (safety mechanism)
+                const rollSafety = setTimeout(() => {
+                     if (isRolling) { setIsRolling(false); }
+                }, 3000);
+
                 try {
-                    if (isPawnLocked(player, currentRoom.players)) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { currentTurn: getNextTurn(currentRoom.players, playerIdx) }); return; }
-                    if (player.skipTurns > 0) { let updated = [...currentRoom.players]; updated[playerIdx].skipTurns -= 1; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, currentTurn: getNextTurn(updated, playerIdx) }); return; }
                     setIsRolling(true); playSound('step');
                     
-                    const isBoss = currentRoom.gameMode === 'raid_boss' && player.uid === currentRoom.hostId;
-                    const isGuard = currentRoom.gameMode === 'hunter' && player.uid === currentRoom.guardUid;
-                    const isSniper = currentRoom.gameMode === 'sniper' && player.uid === currentRoom.sniperUid;
-                    const isReverse = currentRoom.gameMode === 'reverse';
-
-                    // Sniper Turn Handling
-                    if (isSniper) {
-                         // Sniper doesn't roll, handled by UI selection
-                         return;
+                    // FETCH FRESH DATA FIRST
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode));
+                    if (!snap.exists()) return;
+                    const freshRoom = snap.data();
+                    
+                    const playerIdx = freshRoom.currentTurn;
+                    const player = freshRoom.players[playerIdx];
+                    const me = freshRoom.players.find(p => p.uid === user.uid);
+                    
+                    const teamMode = freshRoom.teamBotModes?.[player.teamId] || 'auto';
+                    const isAutoBot = player.isBot && teamMode === 'auto' && freshRoom.hostId === user.uid;
+                    const isMyTeamManualBot = player.isBot && freshRoom.gameMode === 'relay' && me && player.teamId === me.teamId && teamMode === 'manual';
+                    const isHostControllingBot = player.isBot && freshRoom.gameMode !== 'relay' && freshRoom.hostId === user.uid;
+                    
+                    // Logic check with FRESH data
+                    if (player.uid !== user.uid && !isMyTeamManualBot && !isAutoBot && !isHostControllingBot) {
+                        return;
                     }
+                    
+                    if (isPawnLocked(player, freshRoom.players)) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { currentTurn: getNextTurn(freshRoom.players, playerIdx) }); return; }
+                    if (player.skipTurns > 0) { let updated = [...freshRoom.players]; updated[playerIdx].skipTurns -= 1; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, currentTurn: getNextTurn(updated, playerIdx) }); return; }
+                    
+                    const isBoss = freshRoom.gameMode === 'raid_boss' && player.uid === freshRoom.hostId;
+                    const isGuard = freshRoom.gameMode === 'hunter' && player.uid === freshRoom.guardUid;
+                    const isSniper = freshRoom.gameMode === 'sniper' && player.uid === freshRoom.sniperUid;
+                    const isReverse = freshRoom.gameMode === 'reverse';
+
+                    if (isSniper) return;
 
                     let vals = [];
-                    if (isBoss) {
-                        vals = BOSS_DICE_VALS;
-                    } else if (currentRoom.activeGlitch === 'cursed') {
-                        vals = [-3, -2, -1, 1, 2, 3];
-                    } else {
-                        const charId = (player.characterId >= 0 && player.characterId < ROSTER.length) ? player.characterId : 0;
-                        const specialDice = ROSTER[charId].dice;
-                        vals = player.activeCurse ? [2, 2, 1, 1, 0, -1] : (useSpecialDie ? specialDice.vals : [1,2,3,4,5,6]);
-                    }
+                    if (isBoss) { vals = BOSS_DICE_VALS; } else if (freshRoom.activeGlitch === 'cursed') { vals = [-3, -2, -1, 1, 2, 3]; } else { const charId = (player.characterId >= 0 && player.characterId < ROSTER.length) ? player.characterId : 0; const specialDice = ROSTER[charId].dice; vals = player.activeCurse ? [2, 2, 1, 1, 0, -1] : (useSpecialDie ? specialDice.vals : [1,2,3,4,5,6]); }
 
-                    // Speed multiplier applied here for rolling animation
-                    for(let i=0; i<10; i++) { setLastRoll(vals[Math.floor(Math.random() * vals.length)]); await sleep(50/botSpeed); }
+                    for(let i=0; i<8; i++) { setLastRoll(vals[Math.floor(Math.random() * vals.length)]); await sleep(40/botSpeed); }
                     let val = vals[Math.floor(Math.random() * vals.length)];
                     
-                    if (player.extraDice) {
-                        const secondRoll = Math.floor(Math.random() * 6) + 1;
-                        val += secondRoll;
-                    }
+                    if (player.extraDice) { val += Math.floor(Math.random() * 6) + 1; }
                     
                     if (isGuard) val += 2;
-                    if (currentRoom.activeGlitch === 'gravity') val = val * 2; // Low Gravity
-                    if (currentRoom.activeGlitch === 'double_dice') val += Math.floor(Math.random() * 6) + 1; // Double Dice Glitch
+                    if (freshRoom.activeGlitch === 'gravity') val = val * 2; 
+                    if (freshRoom.activeGlitch === 'double_dice') val += Math.floor(Math.random() * 6) + 1; 
 
-                    setLastRoll(val); await sleep(200/botSpeed);
-                    let updated = [...currentRoom.players];
+                    setLastRoll(val); 
+                    await sleep(150/botSpeed);
+                    let updated = [...freshRoom.players];
                     updated[playerIdx].activeCurse = false;
                     updated[playerIdx].extraDice = false;
                     
-                    if (currentRoom.gameMode === 'gem_hunt') { 
-                        val = Math.abs(val); setDirectionChoice({ val }); setIsRolling(false); return; 
-                    }
+                    if (freshRoom.gameMode === 'gem_hunt') { val = Math.abs(val); setDirectionChoice({ val }); return; }
                     
-                    if (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') {
-                         val = Math.abs(val);
-                         updated[playerIdx].remainingMoves = val;
-                         setIsRolling(false);
-                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} ha ${val} passi! Clicca sulle caselle vicine!` });
-                         return;
+                    if (freshRoom.gameMode === 'tiles' || freshRoom.gameMode === 'coin_collector' || freshRoom.gameMode === 'brawl') {
+                         val = Math.abs(val); updated[playerIdx].remainingMoves = val; setIsRolling(false);
+                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} ha ${val} passi! Clicca sulle caselle vicine!` }); return;
                     }
 
-                    const config = currentRoom.gameMode === 'elimination' ? ELIM_MAP : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : CLASSIC_MAP)));
+                    const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : CLASSIC_MAP)));
                     const maxVal = config.max !== undefined ? config.max : 60;
                     
-                    let newPos;
-                    if (isReverse) {
-                         newPos = Math.max(0, player.position - val); 
-                    } else {
-                         newPos = Math.max(0, Math.min(maxVal, player.position + val)); 
-                    }
+                    let newPos; if (isReverse) { newPos = Math.max(0, player.position - val); } else { newPos = Math.max(0, Math.min(maxVal, player.position + val)); }
                     
                     updated[playerIdx].pendingTarget = newPos;
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}!` });
-                } catch (e) { handleError(e); }
-                setIsRolling(false);
+                } catch (e) { handleError(e); } finally {
+                    // Safe reset
+                    clearTimeout(rollSafety);
+                    if (currentRoom.gameMode !== 'gem_hunt' && currentRoom.gameMode !== 'tiles' && currentRoom.gameMode !== 'coin_collector' && currentRoom.gameMode !== 'brawl') {
+                        setIsRolling(false);
+                    }
+                }
             };
 
-            const toggleBotMode = async () => {
-                if (!currentRoom || !me) return;
-                const currentMode = currentRoom.teamBotModes?.[me.teamId] || 'auto';
-                const newMode = currentMode === 'auto' ? 'manual' : 'auto';
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), {
-                    [`teamBotModes.${me.teamId}`]: newMode
-                });
-            };
+            const toggleBotMode = async () => { if (!currentRoom || !me) return; const currentMode = currentRoom.teamBotModes?.[me.teamId] || 'auto'; const newMode = currentMode === 'auto' ? 'manual' : 'auto'; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { [`teamBotModes.${me.teamId}`]: newMode }); };
 
             const getNextTurn = (players, currentIdx) => {
                 let next = (currentIdx + 1) % players.length;
@@ -1823,70 +1481,55 @@
                     const p = currentRoom.players[currentRoom.currentTurn];
                     if (!p) return;
                     
+                    // Prevent bot re-triggering for the same turn if already handled locally
+                    const turnKey = `${currentRoom.currentTurn}-${p.uid}`;
+                    
+                    // Reset ref if turn changed
+                    if (lastBotTurnRef.current.turn !== currentRoom.currentTurn) {
+                        lastBotTurnRef.current = { turn: currentRoom.currentTurn, timestamp: Date.now() };
+                    }
+
                     const teamMode = currentRoom.teamBotModes?.[p.teamId] || 'auto';
                     const shouldAutoRun = p.isBot && currentRoom.hostId === user?.uid && !isRolling && !isMoving && !decisionMode && !directionChoice && teamMode === 'auto';
                     const botMode = currentRoom.teamBotModes?.[p.uid] || 'auto';
                     const isGenericBot = p.isBot && currentRoom.gameMode !== 'relay' && currentRoom.hostId === user?.uid && !isRolling && !isMoving && !decisionMode && !directionChoice && botMode === 'auto';
 
                     if ((currentRoom.gameMode === 'relay' && shouldAutoRun) || (currentRoom.gameMode !== 'relay' && isGenericBot)) {
-                        const delay = 1500 / botSpeed; // Apply speed to initial delay
-                        const moveDelay = 800 / botSpeed; // Apply speed to move delay
+                        // Reduced Delays for Snappier Bots
+                        const delay = 1000 / botSpeed; 
+                        const moveDelay = 500 / botSpeed;
 
                         if (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') {
-                             if (!isRolling && (!p.remainingMoves || p.remainingMoves <= 0)) {
-                                  const t = setTimeout(() => handleRoll(), delay); return () => clearTimeout(t);
-                             } else if (p.remainingMoves > 0) {
+                             if (!isRolling && (!p.remainingMoves || p.remainingMoves <= 0)) { const t = setTimeout(() => handleRoll(), delay); return () => clearTimeout(t); } 
+                             else if (p.remainingMoves > 0) {
                                   let target = -1;
-                                  // Simplified bot AI for brawl/tiles: Random valid neighbor
                                   const width = getGridWidth(currentRoom.gameMode);
                                   const validMoves = [];
                                   
-                                  // For Brawl: check lava and void
-                                  for(let i=0; i<(currentRoom.gameMode === 'brawl' ? 64 : 121); i++) {
-                                       if(getManhattanDistance(p.position, i, width) === 1) {
-                                            if (currentRoom.gameMode === 'brawl') {
-                                                const isVoid = currentRoom.voidTiles && currentRoom.voidTiles.includes(i);
-                                                const isLava = currentRoom.lavaTiles && currentRoom.lavaTiles.includes(i);
-                                                if (!isVoid && !isLava) validMoves.push(i);
-                                            } else {
-                                                validMoves.push(i);
-                                            }
-                                       }
-                                  }
+                                  for(let i=0; i<(currentRoom.gameMode === 'brawl' ? 64 : 121); i++) { if(getManhattanDistance(p.position, i, width) === 1) { if (currentRoom.gameMode === 'brawl') { const isVoid = currentRoom.voidTiles && currentRoom.voidTiles.includes(i); const isLava = currentRoom.lavaTiles && currentRoom.lavaTiles.includes(i); if (!isVoid && !isLava) validMoves.push(i); } else { validMoves.push(i); } } }
                                   
-                                  if (currentRoom.gameMode === 'coin_collector' && currentRoom.coinLocations) {
-                                      const reachableCoins = currentRoom.coinLocations.filter(c => getManhattanDistance(p.position, c.pos, width) === 1);
-                                      if (reachableCoins.length > 0) {
-                                          target = reachableCoins[0].pos; 
-                                      }
-                                  }
-
-                                  if (target === -1 && validMoves.length > 0) {
-                                      // Brawl AI: Try to move towards center or valid tiles
-                                      if (currentRoom.gameMode === 'brawl') {
-                                          // Avoid edges if possible when warning is active
-                                          // Simple random for now
-                                          target = validMoves[Math.floor(Math.random() * validMoves.length)];
-                                      } else {
-                                          target = validMoves[Math.floor(Math.random() * validMoves.length)];
-                                      }
-                                  }
+                                  if (currentRoom.gameMode === 'coin_collector' && currentRoom.coinLocations) { const reachableCoins = currentRoom.coinLocations.filter(c => getManhattanDistance(p.position, c.pos, width) === 1); if (reachableCoins.length > 0) { target = reachableCoins[0].pos; } }
+                                  if (target === -1 && validMoves.length > 0) { target = validMoves[Math.floor(Math.random() * validMoves.length)]; }
                                   
-                                  if (target !== -1) {
-                                      const t = setTimeout(() => executeTileMove(p.uid, target), moveDelay); return () => clearTimeout(t);
-                                  } else if (currentRoom.gameMode === 'brawl') {
-                                      // Stuck? End turn by setting moves to 0
-                                      // Can't easily force end turn without moving, but for simplicity let's assume they always find a move or just timeout naturally (which isn't implemented here, so let's force a skip if stuck)
-                                      // This is a rare edge case in a 8x8 grid
-                                  }
+                                  if (target !== -1) { const t = setTimeout(() => executeTileMove(p.uid, target), moveDelay); return () => clearTimeout(t); }
                              }
                         } else {
-                            if (p.pendingTarget === null) { const t = setTimeout(() => handleRoll(), delay); return () => clearTimeout(t); }
-                            else { const t = setTimeout(() => executeMove(p.uid, p.pendingTarget), delay); return () => clearTimeout(t); }
+                            // Classic Movement Logic
+                            if (p.pendingTarget === null) { 
+                                // ROLL PHASE
+                                // Only roll if we haven't rolled recently or if it's clearly a new attempt needed
+                                const t = setTimeout(() => handleRoll(), delay); 
+                                return () => clearTimeout(t); 
+                            } else { 
+                                // MOVE PHASE
+                                // Execute move if pending target exists
+                                const t = setTimeout(() => executeMove(p.uid, p.pendingTarget), delay); 
+                                return () => clearTimeout(t); 
+                            }
                         }
                     }
                 }
-            }, [currentRoom, isRolling, isMoving, user, directionChoice, decisionMode, botSpeed]);
+            }, [currentRoom?.currentTurn, currentRoom?.status, isRolling, isMoving, user, directionChoice, decisionMode, botSpeed]);
 
             if (!user) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-black">MULTIVERSE RUN</div>;
             const currentPlayer = currentRoom?.players?.[currentRoom.currentTurn];
@@ -1934,9 +1577,6 @@
                                         <Pointer className="text-slate-300 group-hover:text-red-500 -rotate-90"/>
                                     </button>
                                 ))}
-                                {currentRoom.players.filter(p => p.uid !== currentPlayer.uid && !p.finished && !p.isDead).length === 0 && (
-                                    <div className="p-8 text-center text-slate-400 italic">Nessun bersaglio disponibile!</div>
-                                )}
                             </div>
                             {!bossTargetSelection && <button onClick={() => {setTargetSelectionMode(null); setDecisionMode(false);}} className="p-4 bg-slate-200 font-bold hover:bg-slate-300 transition-colors">ANNULLA</button>}
                         </div>
@@ -1975,7 +1615,6 @@
                     </div>
                 )}
 
-                {/* Rest of the UI (Error Msg, Header, Lobby, Game Board, Footer) remains largely same */}
                 {errorMsg && <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-center p-2 z-[150] font-black uppercase tracking-tighter"><AlertCircle className="inline mr-2" /> {errorMsg}</div>}
 
                 <div className="bg-indigo-900 text-white p-3 flex justify-between items-center shadow-lg z-50">
@@ -2015,6 +1654,7 @@
                             <input type="text" placeholder="Nickname" className="w-full p-4 text-center text-xl font-black rounded-xl border-4 border-indigo-100 outline-none" value={nickname} onChange={e=>setNickname(e.target.value)} />
                             <div className="grid grid-cols-2 gap-2">
                                 <button onClick={() => createRoom('classic')} disabled={!nickname} className="h-24 bg-green-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Flag className="mx-auto mb-1"/> CLASSICA</button>
+                                <button onClick={() => createRoom('tournament')} disabled={!nickname} className="h-24 bg-yellow-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-yellow-200"><Trophy className="mx-auto mb-1"/> TORNEO</button>
                                 <button onClick={() => createRoom('glitch')} disabled={!nickname} className="h-24 bg-purple-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-fuchsia-400"><Bug className="mx-auto mb-1"/> GLITCH</button>
                                 <button onClick={() => createRoom('classic_punitive')} disabled={!nickname} className="h-24 bg-rose-700 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Swords className="mx-auto mb-1"/> PUNITIVA</button>
                                 <button onClick={() => createRoom('elimination')} disabled={!nickname} className="h-24 bg-cyan-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Skull className="mx-auto mb-1"/> ELIMINAZIONE</button>
@@ -2052,10 +1692,28 @@
                                 {currentRoom.hostId === user.uid && <div className="flex gap-2">
                                     <button onClick={addBot} className="bg-slate-200 px-4 py-2 rounded-lg font-black text-xs uppercase hover:bg-slate-300">Add Bot</button>
                                     {currentRoom.gameMode === 'battle_royale' && <button onClick={fillLobbyBots} className="bg-violet-200 text-violet-800 px-4 py-2 rounded-lg font-black text-xs uppercase hover:bg-violet-300">RIEMPI 32</button>}
+                                    {currentRoom.gameMode === 'tournament' && <button onClick={fillLobbyBots} className="bg-yellow-200 text-yellow-800 px-4 py-2 rounded-lg font-black text-xs uppercase hover:bg-yellow-300">RIEMPI 8</button>}
                                     <button onClick={startGame} className="bg-green-500 text-white px-8 py-2 rounded-lg font-black shadow-lg">START</button>
                                 </div>}
                             </div>
                             
+                            {/* Tournament Config */}
+                            {currentRoom.gameMode === 'tournament' && currentRoom.hostId === user.uid && (
+                                <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-yellow-500 animate-in slide-in-from-top-4">
+                                    <h3 className="font-black text-lg text-yellow-800 mb-4 flex items-center gap-2"><Trophy/> CONFIGURAZIONE TORNEO</h3>
+                                    <div className="space-y-2">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Numero di Round</div>
+                                        <div className="flex gap-2">
+                                            {[2,3,4].map(n => (
+                                                <button key={n} onClick={() => setTournamentRounds(n)} className={`flex-1 py-3 rounded-lg font-black ${tournamentRounds === n ? 'bg-yellow-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {n} ROUND
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Battle Royale Config */}
                             {currentRoom.gameMode === 'battle_royale' && currentRoom.hostId === user.uid && (
                                 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-violet-500 animate-in slide-in-from-top-4">
@@ -2257,6 +1915,11 @@
                                             <span className="text-xs font-bold text-yellow-600/50 uppercase">/ {currentRoom.maxScore}</span>
                                          </div>
                                     )}
+                                    {currentRoom.gameMode === 'tournament' && (
+                                        <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg border border-yellow-200 font-black text-xs uppercase">
+                                            PUNTI: {currentPlayer.score || 0}
+                                        </div>
+                                    )}
                                     {currentRoom.gameMode === 'battle_royale' && (
                                         <div className="flex items-center gap-1 bg-violet-100 text-violet-700 px-3 py-1 rounded-lg border border-violet-200 font-black text-xs uppercase">
                                             ROUND {currentRoom.battleRoundIndex + 1} • QUALIFY: {currentRoom.players.filter(p=>p.finished).length} / {currentRoom.qualifyLimit}
@@ -2303,7 +1966,7 @@
                                 </div>
                                 <div className="text-right">
                                     <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{currentRoom.gameMode.toUpperCase().replace('_', ' ')}</div>
-                                    <div className="font-black text-indigo-900 leading-none">ROUND {currentRoom.round} {currentRoom.gameMode === 'tiles' && `/ ${currentRoom.maxRounds}`}</div>
+                                    <div className="font-black text-indigo-900 leading-none">ROUND {currentRoom.round} {currentRoom.gameMode === 'tiles' && `/ ${currentRoom.maxRounds}`} {currentRoom.gameMode === 'tournament' && `/ ${currentRoom.tournamentTotalRounds}`}</div>
                                 </div>
                             </div>
 
@@ -2316,6 +1979,7 @@
                                         special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : CLASSIC_MAP.specials[i])))))} 
                                         isElimination={currentRoom.gameMode === 'elimination'} 
                                         isBattleRoyale={currentRoom.gameMode === 'battle_royale'}
+                                        isTournament={currentRoom.gameMode === 'tournament'}
                                         isPendingTarget={canControlCurrent && currentPlayer.pendingTarget === i} 
                                         isValidMoveTarget={(currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') && canControlCurrent && currentPlayer.remainingMoves > 0 && getManhattanDistance(currentPlayer.position, i, currentRoom.gameMode === 'brawl' ? 8 : 11) === 1 && (!currentRoom.voidTiles || !currentRoom.voidTiles.includes(i))}
                                         onCellClick={isSniperTurn ? () => handleSniperTileClick(i) : (targetSelectionMode ? () => {} : ((currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') && canControlCurrent && currentPlayer.remainingMoves > 0 ? () => executeTileMove(user.uid, i) : () => executeMove(user.uid, i)))}
@@ -2436,6 +2100,7 @@
                         <div className="hidden lg:flex flex-col w-80 bg-indigo-950 text-white border-l-4 border-white/10 overflow-y-auto p-4 space-y-3">
                             <h3 className="font-black text-lg border-b border-white/10 pb-2 flex items-center gap-2"><Trophy size={20} className="text-yellow-400"/> CLASSIFICA</h3>
                             {[...currentRoom.players].sort((a,b) => {
+                                if (currentRoom.gameMode === 'tournament') return (b.score || 0) - (a.score || 0); // Tournament Sort by Score
                                 if (a.isDead && !b.isDead) return 1; 
                                 if (!a.isDead && b.isDead) return -1;
                                 if (currentRoom.gameMode === 'tiles') {
@@ -2466,6 +2131,7 @@
                                             {currentRoom.gameMode === 'lava' && ` • Vite: ${p.lives}`}
                                             {currentRoom.gameMode === 'glitch' && ` • Vite: ${p.lives}`}
                                             {currentRoom.gameMode === 'brawl' && ` • Vite: ${p.lives}`}
+                                            {currentRoom.gameMode === 'tournament' && ` • Punti: ${p.score || 0}`}
                                             {currentRoom.gameMode === 'raid_boss' && (p.uid === currentRoom.hostId ? ` • Boss HP: ${currentRoom.bossHp}` : ` • Vite: ${p.lives}`)}
                                             {currentRoom.gameMode === 'sniper' && p.uid !== currentRoom.sniperUid && ` • Vite: ${p.lives}`}
                                         </div>
