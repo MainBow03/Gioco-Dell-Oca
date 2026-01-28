@@ -165,7 +165,6 @@
             { name: "Toph", img: "https://i.pinimg.com/736x/cf/26/2e/cf262e1acee23fe4dadd852dda3a71d1.jpg", dice: { name: "Dado Cieco", vals: [-3, -3, -1, 3, 5, 13], color: "bg-stone-600", text: "text-stone-700", desc: "Non vede, ma quando colpisce fa male." } },
             { name: "Fiamma", img: "https://i.pinimg.com/1200x/30/98/43/309843f2f301f59c19ad95dc366fa93b.jpg", dice: { name: "Dado Fiammante", vals: [1, 2, 3, 4, 5, 9], color: "bg-orange-500", text: "text-orange-500", desc: "Un dado normale... finché non divampa!" } },
             { name: "Re Dado", img: "https://i.pinimg.com/736x/d7/68/ae/d768ae090345733da8b98eac071e3873.jpg", dice: { name: "Dado Master", vals: [1, 1, 3, 4, 6, 6], color: "bg-purple-600", text: "text-purple-600", desc: "Gioco d'azzardo controllato dal Boss." } },
-            { name: "Ispettore Gadget", img: "https://i.pinimg.com/736x/07/35/ec/0735ec887227448d447f525547466547.jpg", dice: { name: "Dado Gadget", vals: [-1, 3, 3, 4, 5, 8], color: "bg-slate-500", text: "text-slate-600", desc: "Hop hop gadget dado! A volte fallisce (-1), a volte vola." } },
             { name: "Yugo", img: "https://i.pinimg.com/736x/cc/fa/6d/ccfa6d56145da782cd6a250ce19254a3.jpg", dice: { name: "Dado Wakfu", vals: [0, 2, 4, 4, 7, 8], color: "bg-cyan-500", text: "text-cyan-600", desc: "Portali energetici: salti rapidi e precisi." } }
         ].map((c, i) => ({ ...c, id: i }));
 
@@ -355,6 +354,21 @@
                 34: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Ti piazzi davanti!" },
                 38: { type: 'BOOST', val: -1, name: '-1', icon: <ArrowDown/>, desc: 'Indietro di 1.' },
                 39: { type: 'BOOST', val: -5, name: '-5', icon: <ArrowDown/>, desc: 'Indietro di 5.' }
+            }
+        };
+
+        const HUNTER_MAP = {
+            max: 80,
+            specials: {
+                ...CLASSIC_MAP.specials,
+                58: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Hai schivato lo scheletro! +2" }, // Rimpiazza lo scheletro classico
+                62: { type: 'BOOST', val: 3, name: '+3', icon: <Zap />, desc: "Sprint verso la libertà!" },
+                65: { type: 'WAIT', turns: 1, name: 'Trappola', icon: <Lock />, desc: "La polizia ti ha rallentato! Fermo 1 turno." },
+                68: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Ultimo bivio!" },
+                72: { type: 'BACK', val: 55, name: 'Allarme', icon: <Siren />, desc: "Allarme rosso! Torni indietro alla 55." },
+                75: { type: 'TELEPORT', name: 'Portale', icon: <Shuffle />, desc: "Ultima chance di fuga." },
+                76: { type: 'RESTART', name: 'Scheletro', icon: <Skull />, desc: "PRESO! Lo scheletro ti riporta allo START." },
+                79: { type: 'BOOST', val: -1, name: '-1', icon: <ArrowDown />, desc: "Così vicino! Indietro di 1." }
             }
         };
 
@@ -1150,6 +1164,7 @@
                     if (freshRoom.gameMode === 'gem_hunt') config = GEM_MAP;
                     if (freshRoom.gameMode === 'reverse') config = REVERSE_MAP;
                     if (freshRoom.gameMode === 'battle_royale') config = BATTLE_ROYALE_MAP;
+                    if (freshRoom.gameMode === 'hunter') config = HUNTER_MAP;
                     
                     let effectiveSpecials = config.specials;
                     if (freshRoom.gameMode === 'elimination' && freshRoom.customSpecials) effectiveSpecials = freshRoom.customSpecials;
@@ -1638,7 +1653,7 @@
                          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} ha ${val} passi! Clicca sulle caselle vicine!` }); return;
                     }
 
-                    const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : CLASSIC_MAP)));
+                    const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : (freshRoom.gameMode === 'hunter' ? HUNTER_MAP : CLASSIC_MAP))));
                     const maxVal = config.max !== undefined ? config.max : 60;
                     
                     let newPos; if (isReverse) { newPos = Math.max(0, player.position - val); } else { newPos = Math.max(0, Math.min(maxVal, player.position + val)); }
@@ -2240,12 +2255,12 @@
                             </div>
 
                             <div className={`gap-1.5 p-2 bg-slate-200/50 rounded-xl grid ${currentRoom.gameMode === 'brawl' ? 'grid-cols-8 max-w-2xl mx-auto' : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 'grid-cols-11' : 'grid-cols-5 md:grid-cols-8 lg:grid-cols-10')} ${currentRoom.activeGlitch === 'earthquake' ? 'animate-bounce' : ''} ${currentRoom.activeGlitch === 'darkness' ? 'grayscale brightness-50 contrast-150' : ''}`}>
-                                {Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
+                                {Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : (currentRoom.gameMode === 'hunter' ? 80 : 60)))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
                                     <BoardCell 
                                         key={i} 
                                         num={i} 
                                         players={currentRoom.players.filter(p => p.position === i && !p.isDead)} 
-                                        special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : CLASSIC_MAP.specials[i])))))} 
+                                        special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : (currentRoom.gameMode === 'hunter' ? HUNTER_MAP.specials[i] : CLASSIC_MAP.specials[i]))))))} 
                                         isElimination={currentRoom.gameMode === 'elimination'} 
                                         isBattleRoyale={currentRoom.gameMode === 'battle_royale'}
                                         isTournament={currentRoom.gameMode === 'tournament'}
