@@ -83,7 +83,8 @@ Dice5, LogOut, ArrowRight, Skull, RefreshCcw,
 ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
 Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
 Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind, Swords as SwordsIcon, Coins,
-Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6, Anchor, Droplets, Hand
+            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6
+            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6, Anchor, Droplets, Hand
 } from 'lucide-react';
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -163,10 +164,14 @@ const ROSTER = [
 { name: "Gommarosa", img: "https://i.pinimg.com/1200x/08/55/4e/08554e6bf4a3f93069db83fa67ca11c7.jpg", dice: { name: "Dado Gommoso", vals: [2, 2, 2, 4, 4, 5], color: "bg-pink-400", text: "text-pink-400", desc: "Dolce e appiccicosa." } },
 { name: "Marceline", img: "https://i.pinimg.com/1200x/bd/81/67/bd816740842afa6514f3246c38a32bd8.jpg", dice: { name: "Dado Vampirico", vals: [-3, 4, 8, -3, 4, 8], color: "bg-slate-900", text: "text-slate-800", desc: "Morsi potenti o ritiro nell'ombra." } },
 { name: "Toph", img: "https://i.pinimg.com/736x/cf/26/2e/cf262e1acee23fe4dadd852dda3a71d1.jpg", dice: { name: "Dado Cieco", vals: [-3, -3, -1, 3, 5, 13], color: "bg-stone-600", text: "text-stone-700", desc: "Non vede, ma quando colpisce fa male." } },
-{ name: "Fiamma", img: "https://i.pinimg.com/1200x/30/98/43/309843f2f301f59c19ad95dc366fa93b.jpg", dice: { name: "Dado Fiammante", vals: [1, 2, 3, 4, 5, 9], color: "bg-orange-500", text: "text-orange-500", desc: "Un dado normale... finché non divampa!" } },
-{ name: "Re Dado", img: "https://i.pinimg.com/736x/d7/68/ae/d768ae090345733da8b98eac071e3873.jpg", dice: { name: "Dado Master", vals: [1, 1, 3, 4, 6, 6], color: "bg-purple-600", text: "text-purple-600", desc: "Gioco d'azzardo controllato dal Boss." } },
+            { name: "Mimikyu", img: "https://i.pinimg.com/736x/2c/74/a4/2c74a43c1cccf3430d944eca3b43c7f9.jpg", dice: { name: "Dado Spookie", vals: [2, 3, 6], color: "bg-zinc-800", text: "text-zinc-400", desc: "Solo 3 facce: lento, medio o scatto." } },
+            { name: "Stellarubia", img: "https://i.pinimg.com/736x/1e/65/45/1e6545f6753bed2cf9c6c3d49835ecf1.jpg", dice: { name: "Dado Laser", vals: [-1, -1, 3, 5, 7, 7], color: "bg-fuchsia-600", text: "text-fuchsia-600", desc: "Colpi potenti ma instabili." } },
+            { name: "Rayman", img: "https://i.pinimg.com/1200x/ab/28/89/ab288991f89773b074b94cf9338c0339.jpg", dice: { name: "Dado Uh-uh!", vals: [2, 2, 2, 2, 4, 8], color: "bg-purple-600", text: "text-purple-600", desc: "Costante con un salto gigante." } },
+            { name: "Fiamma", img: "https://i.pinimg.com/1200x/30/98/43/309843f2f301f59c19ad95dc366fa93b.jpg", dice: { name: "Dado Fiammante", vals: [1, 2, 3, 4, 5, 9], color: "bg-orange-500", text: "text-orange-500", desc: "Un dado normale... finché non divampa!" } }
+            { name: "Fiamma", img: "https://i.pinimg.com/1200x/30/98/43/309843f2f301f59c19ad95dc366fa93b.jpg", dice: { name: "Dado Fiammante", vals: [1, 2, 3, 4, 5, 9], color: "bg-orange-500", text: "text-orange-500", desc: "Un dado normale... finché non divampa!" } },
+            { name: "Re Dado", img: "https://i.pinimg.com/736x/d7/68/ae/d768ae090345733da8b98eac071e3873.jpg", dice: { name: "Dado Master", vals: [1, 1, 3, 4, 6, 6], color: "bg-purple-600", text: "text-purple-600", desc: "Gioco d'azzardo controllato dal Boss." } },
             { name: "Ispettore Gadget", img: "https://i.pinimg.com/736x/07/35/ec/0735ec887227448d447f525547466547.jpg", dice: { name: "Dado Gadget", vals: [-1, 3, 3, 4, 5, 8], color: "bg-slate-500", text: "text-slate-600", desc: "Hop hop gadget dado! A volte fallisce (-1), a volte vola." } },
-{ name: "Yugo", img: "https://i.pinimg.com/736x/cc/fa/6d/ccfa6d56145da782cd6a250ce19254a3.jpg", dice: { name: "Dado Wakfu", vals: [0, 2, 4, 4, 7, 8], color: "bg-cyan-500", text: "text-cyan-600", desc: "Portali energetici: salti rapidi e precisi." } }
+            { name: "Yugo", img: "https://i.pinimg.com/736x/cc/fa/6d/ccfa6d56145da782cd6a250ce19254a3.jpg", dice: { name: "Dado Wakfu", vals: [0, 2, 4, 4, 7, 8], color: "bg-cyan-500", text: "text-cyan-600", desc: "Portali energetici: salti rapidi e precisi." } }
 ].map((c, i) => ({ ...c, id: i }));
 
 const BOSS_DICE_VALS = [3, 4, 5, 6, 7, 8];
@@ -226,10 +231,11 @@ Scope: <Scope />,
 Bug: <Bug />,
 Dices: <Dices />,
 List: <List />,
-Hash: <Hash />,
-Anchor: <Anchor />,
-Droplets: <Droplets />,
-Hand: <Hand />
+            Hash: <Hash />
+            Hash: <Hash />,
+            Anchor: <Anchor />,
+            Droplets: <Droplets />,
+            Hand: <Hand />
 };
 
 const DiceIcon = ({val}) => {
@@ -358,33 +364,21 @@ specials: {
 }
 };
 
-        const HUNTER_MAP = {
-            max: 80,
-            specials: {
-                ...CLASSIC_MAP.specials,
-                58: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Hai schivato lo scheletro! +2" }, // Rimpiazza lo scheletro classico
-                62: { type: 'BOOST', val: 3, name: '+3', icon: <Zap />, desc: "Sprint verso la libertà!" },
-                65: { type: 'WAIT', turns: 1, name: 'Trappola', icon: <Lock />, desc: "La polizia ti ha rallentato! Fermo 1 turno." },
-                68: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Ultimo bivio!" },
-                72: { type: 'BACK', val: 55, name: 'Allarme', icon: <Siren />, desc: "Allarme rosso! Torni indietro alla 55." },
-                75: { type: 'TELEPORT', name: 'Portale', icon: <Shuffle />, desc: "Ultima chance di fuga." },
-                76: { type: 'RESTART', name: 'Scheletro', icon: <Skull />, desc: "PRESO! Lo scheletro ti riporta allo START." },
-                79: { type: 'BOOST', val: -1, name: '-1', icon: <ArrowDown />, desc: "Così vicino! Indietro di 1." }
-            }
-        };
-
 const DECISION_POOL = [
-{ id: 'leadership', name: 'Leadership', desc: "Tutti avanzano di 2, tu di 4.", icon: <Users/> },
+            { id: 'all_1_me_3', name: 'Leadership', desc: "Tutti avanzano di 1, tu di 3.", icon: <Users/> },
+            { id: 'leadership', name: 'Leadership', desc: "Tutti avanzano di 2, tu di 4.", icon: <Users/> },
 { id: 'target_back_4', name: 'Sabotaggio', desc: "Scegli chi arretra di 4 caselle.", icon: <ArrowDown/> },
 { id: 'teleport', name: 'Portale', desc: "Ti teletrasporti da un giocatore a caso.", icon: <Shuffle/> },
-{ id: 'curse', name: 'Maledizione', desc: "Scegli chi userà il dado maledetto (-3,-2,-1,0,1,2).", icon: <Ban/> },
+            { id: 'curse', name: 'Maledizione', desc: "Scegli chi userà il dado maledetto (2,1,0,-1).", icon: <Ban/> },
+            { id: 'curse', name: 'Maledizione', desc: "Scegli chi userà il dado maledetto (-3,-2,-1,0,1,2).", icon: <Ban/> },
 { id: 'reroll', name: 'Seconda Chance', desc: "Rilancia subito il dado.", icon: <RefreshCcw/> },
-{ id: 'turbo', name: 'Turbo', desc: "Avanza di 5 caselle.", icon: <Zap/> },
-{ id: 'vampire', name: 'Vampirismo', desc: "Rubi 3 caselle a un avversario.", icon: <Droplets/> },
-{ id: 'anchor', name: 'Zavorra', desc: "Tutti gli altri arretrano di 2.", icon: <Anchor/> },
-{ id: 'gamble', name: 'Scommessa', desc: "50/50: +6 o -3.", icon: <Dices/> },
-{ id: 'force_stop', name: 'Sosta Forzata', desc: "Blocca un giocatore per 1 turno.", icon: <Hand/> },
-{ id: 'targeted_swap', name: 'Scambio Mirato', desc: "Scambia posizione con chi vuoi.", icon: <ArrowLeftRight/> }
+            { id: 'turbo', name: 'Turbo', desc: "Avanza di 4 caselle.", icon: <Zap/> }
+            { id: 'turbo', name: 'Turbo', desc: "Avanza di 5 caselle.", icon: <Zap/> },
+            { id: 'vampire', name: 'Vampirismo', desc: "Rubi 3 caselle a un avversario.", icon: <Droplets/> },
+            { id: 'anchor', name: 'Zavorra', desc: "Tutti gli altri arretrano di 2.", icon: <Anchor/> },
+            { id: 'gamble', name: 'Scommessa', desc: "50/50: +6 o -3.", icon: <Dices/> },
+            { id: 'force_stop', name: 'Sosta Forzata', desc: "Blocca un giocatore per 1 turno.", icon: <Hand/> },
+            { id: 'targeted_swap', name: 'Scambio Mirato', desc: "Scambia posizione con chi vuoi.", icon: <ArrowLeftRight/> }
 ];
 
 const PlayerAvatar = ({ charId, size = "md", border = true }) => {
@@ -1059,18 +1053,18 @@ if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(pushIdx)) { tempPlay
 }
 
 tempPlayers[currentPlayerIdx].position = targetPos;
-
-// FIX: Lava Check for Mover
-if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(targetPos)) {
-if (tempPlayers[currentPlayerIdx].lives !== undefined) {
-tempPlayers[currentPlayerIdx].lives -= 1;
-playSound('fire');
-if (tempPlayers[currentPlayerIdx].lives <= 0) {
-tempPlayers[currentPlayerIdx].isDead = true;
-playSound('skull');
-}
-}
-}
+                     
+                     // FIX: Lava Check for Mover
+                     if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(targetPos)) {
+                         if (tempPlayers[currentPlayerIdx].lives !== undefined) {
+                             tempPlayers[currentPlayerIdx].lives -= 1;
+                             playSound('fire');
+                             if (tempPlayers[currentPlayerIdx].lives <= 0) {
+                                 tempPlayers[currentPlayerIdx].isDead = true;
+                                 playSound('skull');
+                             }
+                         }
+                     }
 
 tempPlayers[currentPlayerIdx].remainingMoves = (tempPlayers[currentPlayerIdx].remainingMoves || 1) - 1;
 
@@ -1165,7 +1159,6 @@ if (freshRoom.gameMode === 'elimination') config = ELIM_MAP;
 if (freshRoom.gameMode === 'gem_hunt') config = GEM_MAP;
 if (freshRoom.gameMode === 'reverse') config = REVERSE_MAP;
 if (freshRoom.gameMode === 'battle_royale') config = BATTLE_ROYALE_MAP;
-                    if (freshRoom.gameMode === 'hunter') config = HUNTER_MAP;
 
 let effectiveSpecials = config.specials;
 if (freshRoom.gameMode === 'elimination' && freshRoom.customSpecials) effectiveSpecials = freshRoom.customSpecials;
@@ -1438,17 +1431,20 @@ const handleDecisionEffect = async (option) => {
 if (!option || !currentRoom) return;
 const playerIdx = currentRoom.currentTurn;
 const player = currentRoom.players[playerIdx];
-if (option.id === 'target_back_4' || option.id === 'curse' || option.id === 'vampire' || option.id === 'force_stop' || option.id === 'targeted_swap') { setTargetSelectionMode(option.id); return; }
+                if (option.id === 'target_back_4' || option.id === 'curse') { setTargetSelectionMode(option.id); return; }
+                if (option.id === 'target_back_4' || option.id === 'curse' || option.id === 'vampire' || option.id === 'force_stop' || option.id === 'targeted_swap') { setTargetSelectionMode(option.id); return; }
 
 let updatedPlayers = [...currentRoom.players];
 updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
 
-if (option.id === 'leadership') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; let move = (p.id === player.id) ? 4 : 2; return { ...p, position: Math.min(p.position + move, 60) }; }); }
+                if (option.id === 'all_1_me_3') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; let move = (p.id === player.id) ? 3 : 1; return { ...p, position: Math.min(p.position + move, 60) }; }); }
+                if (option.id === 'leadership') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; let move = (p.id === player.id) ? 4 : 2; return { ...p, position: Math.min(p.position + move, 60) }; }); }
 else if (option.id === 'teleport') { const others = updatedPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); if (others.length > 0) { const target = others[Math.floor(Math.random() * others.length)]; updatedPlayers[playerIdx].position = target.position; playSound('teleport'); } }
 else if (option.id === 'reroll') { setDecisionMode(false); setDecisionOptions([]); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} tira di nuovo!` }); return; }
-else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 5, 60); }
-else if (option.id === 'anchor') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || p.id === player.id) return p; return { ...p, position: Math.max(0, p.position - 2) }; }); playSound('punch'); }
-else if (option.id === 'gamble') { const win = Math.random() > 0.5; const val = win ? 6 : -3; updatedPlayers[playerIdx].position = Math.max(0, Math.min(60, player.position + val)); playSound(win ? 'powerup' : 'lose'); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} SCOMMETTE E... ${win ? 'VINCE (+6)!' : 'PERDE (-3)!'}` }); setDecisionMode(false); setDecisionOptions([]); return; }
+                else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 4, 60); }
+                else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 5, 60); }
+                else if (option.id === 'anchor') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || p.id === player.id) return p; return { ...p, position: Math.max(0, p.position - 2) }; }); playSound('punch'); }
+                else if (option.id === 'gamble') { const win = Math.random() > 0.5; const val = win ? 6 : -3; updatedPlayers[playerIdx].position = Math.max(0, Math.min(60, player.position + val)); playSound(win ? 'powerup' : 'lose'); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} SCOMMETTE E... ${win ? 'VINCE (+6)!' : 'PERDE (-3)!'}` }); setDecisionMode(false); setDecisionOptions([]); return; }
 
 setDecisionMode(false); setDecisionOptions([]);
 const nextTurn = getNextTurn(updatedPlayers, playerIdx);
@@ -1466,9 +1462,9 @@ updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null 
 
 if (targetSelectionMode === 'target_back_4') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 4); playSound('punch'); }
 else if (targetSelectionMode === 'curse') { updatedPlayers[targetIdx].activeCurse = true; playSound('curse'); }
-else if (targetSelectionMode === 'vampire') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 3); updatedPlayers[playerIdx].position = Math.min(60, updatedPlayers[playerIdx].position + 3); playSound('suck'); }
-else if (targetSelectionMode === 'force_stop') { updatedPlayers[targetIdx].skipTurns = (updatedPlayers[targetIdx].skipTurns || 0) + 1; playSound('lock'); }
-else if (targetSelectionMode === 'targeted_swap') { const myPos = updatedPlayers[playerIdx].position; updatedPlayers[playerIdx].position = updatedPlayers[targetIdx].position; updatedPlayers[targetIdx].position = myPos; playSound('teleport'); }
+                else if (targetSelectionMode === 'vampire') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 3); updatedPlayers[playerIdx].position = Math.min(60, updatedPlayers[playerIdx].position + 3); playSound('suck'); }
+                else if (targetSelectionMode === 'force_stop') { updatedPlayers[targetIdx].skipTurns = (updatedPlayers[targetIdx].skipTurns || 0) + 1; playSound('lock'); }
+                else if (targetSelectionMode === 'targeted_swap') { const myPos = updatedPlayers[playerIdx].position; updatedPlayers[playerIdx].position = updatedPlayers[targetIdx].position; updatedPlayers[targetIdx].position = myPos; playSound('teleport'); }
 else if (targetSelectionMode === 'duel') {
 // Start Duel Mode
 const challenger = updatedPlayers[playerIdx];
@@ -1630,7 +1626,8 @@ const isReverse = freshRoom.gameMode === 'reverse';
 if (isSniper) return;
 
 let vals = [];
-if (isBoss) { vals = BOSS_DICE_VALS; } else if (freshRoom.activeGlitch === 'cursed') { vals = [-3, -2, -1, 1, 2, 3]; } else { const charId = (player.characterId >= 0 && player.characterId < ROSTER.length) ? player.characterId : 0; const specialDice = ROSTER[charId].dice; vals = player.activeCurse ? [-3, -2, -1, 0, 1, 2] : (useSpecialDie ? specialDice.vals : [1,2,3,4,5,6]); }
+                    if (isBoss) { vals = BOSS_DICE_VALS; } else if (freshRoom.activeGlitch === 'cursed') { vals = [-3, -2, -1, 1, 2, 3]; } else { const charId = (player.characterId >= 0 && player.characterId < ROSTER.length) ? player.characterId : 0; const specialDice = ROSTER[charId].dice; vals = player.activeCurse ? [2, 2, 1, 1, 0, -1] : (useSpecialDie ? specialDice.vals : [1,2,3,4,5,6]); }
+                    if (isBoss) { vals = BOSS_DICE_VALS; } else if (freshRoom.activeGlitch === 'cursed') { vals = [-3, -2, -1, 1, 2, 3]; } else { const charId = (player.characterId >= 0 && player.characterId < ROSTER.length) ? player.characterId : 0; const specialDice = ROSTER[charId].dice; vals = player.activeCurse ? [-3, -2, -1, 0, 1, 2] : (useSpecialDie ? specialDice.vals : [1,2,3,4,5,6]); }
 
 for(let i=0; i<8; i++) { setLastRoll(vals[Math.floor(Math.random() * vals.length)]); await sleep(40/botSpeed); }
 let val = vals[Math.floor(Math.random() * vals.length)];
@@ -1654,8 +1651,7 @@ val = Math.abs(val); updated[playerIdx].remainingMoves = val; setIsRolling(false
 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} ha ${val} passi! Clicca sulle caselle vicine!` }); return;
 }
 
-                    const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : CLASSIC_MAP)));
-                    const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : (freshRoom.gameMode === 'hunter' ? HUNTER_MAP : CLASSIC_MAP))));
+const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : CLASSIC_MAP)));
 const maxVal = config.max !== undefined ? config.max : 60;
 
 let newPos; if (isReverse) { newPos = Math.max(0, player.position - val); } else { newPos = Math.max(0, Math.min(maxVal, player.position + val)); }
@@ -2257,14 +2253,12 @@ ROUND {currentRoom.battleRoundIndex + 1} • QUALIFY: {currentRoom.players.filte
 </div>
 
 <div className={`gap-1.5 p-2 bg-slate-200/50 rounded-xl grid ${currentRoom.gameMode === 'brawl' ? 'grid-cols-8 max-w-2xl mx-auto' : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 'grid-cols-11' : 'grid-cols-5 md:grid-cols-8 lg:grid-cols-10')} ${currentRoom.activeGlitch === 'earthquake' ? 'animate-bounce' : ''} ${currentRoom.activeGlitch === 'darkness' ? 'grayscale brightness-50 contrast-150' : ''}`}>
-                                {Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
-                                {Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : (currentRoom.gameMode === 'hunter' ? 80 : 60)))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
+{Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
 <BoardCell 
 key={i} 
 num={i} 
 players={currentRoom.players.filter(p => p.position === i && !p.isDead)} 
-                                        special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : CLASSIC_MAP.specials[i])))))} 
-                                        special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : (currentRoom.gameMode === 'hunter' ? HUNTER_MAP.specials[i] : CLASSIC_MAP.specials[i]))))))} 
+special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : CLASSIC_MAP.specials[i])))))} 
 isElimination={currentRoom.gameMode === 'elimination'} 
 isBattleRoyale={currentRoom.gameMode === 'battle_royale'}
 isTournament={currentRoom.gameMode === 'tournament'}
