@@ -83,7 +83,8 @@ Dice5, LogOut, ArrowRight, Skull, RefreshCcw,
 ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
 Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
 Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind, Swords as SwordsIcon, Coins,
-Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6
+            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash
+            Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6
 } from 'lucide-react';
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -194,7 +195,7 @@ else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(
 else if (type === 'sniper') { osc.type = 'square'; osc.frequency.setValueAtTime(880, now); osc.frequency.exponentialRampToValueAtTime(110, now + 0.3); gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
 else if (type === 'glitch') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(50, now); osc.frequency.linearRampToValueAtTime(600, now + 0.5); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
 else if (type === 'powerup') { osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.linearRampToValueAtTime(880, now + 0.2); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
-else if (type === 'roll') { osc.type = 'noise'; osc.frequency.setValueAtTime(1000, now); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
+                else if (type === 'roll') { osc.type = 'noise'; osc.frequency.setValueAtTime(1000, now); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
 } catch (e) { console.error(e); }
 };
 
@@ -224,15 +225,15 @@ Dices: <Dices />,
 List: <List />,
 Hash: <Hash />
 };
-
-const DiceIcon = ({val}) => {
-if (val === 1) return <Dice1 size={32}/>;
-if (val === 2) return <Dice2 size={32}/>;
-if (val === 3) return <Dice3 size={32}/>;
-if (val === 4) return <Dice4 size={32}/>;
-if (val === 5) return <Dice5 size={32}/>;
-return <Dice6 size={32}/>;
-}
+        
+        const DiceIcon = ({val}) => {
+             if (val === 1) return <Dice1 size={32}/>;
+             if (val === 2) return <Dice2 size={32}/>;
+             if (val === 3) return <Dice3 size={32}/>;
+             if (val === 4) return <Dice4 size={32}/>;
+             if (val === 5) return <Dice5 size={32}/>;
+             return <Dice6 size={32}/>;
+        }
 
 const getIcon = (icon) => {
 if (typeof icon === 'string') return IconMap[icon] || <Info />;
@@ -245,7 +246,7 @@ specials: {
 6: { type: 'JUMP', val: 12, name: 'Ponte', icon: <ArrowRight />, desc: "Attraversa il ponte! Vai direttamente alla casella 12." },
 15: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, 
 16: { type: 'TELEPORT', name: 'Teletrasporto', icon: <Shuffle />, desc: "Scambio dimensionale! Vai nella casella di un giocatore a caso." },
-18: { type: 'CHALLENGE', name: 'Sfida', icon: <SwordsIcon />, desc: "Sfida un giocatore! Best of 3." },
+            18: { type: 'CHALLENGE', name: 'Sfida', icon: <SwordsIcon />, desc: "Sfida un giocatore! Best of 3." },
 19: { type: 'WAIT', turns: 2, name: 'Pozzo', icon: <RefreshCcw />, desc: "Sei caduto nel Pozzo! Devi aspettare 2 turni per risalire." }, 
 22: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Scegli il tuo destino! 3 opzioni casuali." },
 25: { type: 'TAIL', name: 'In Coda', icon: <Footprints />, desc: "Ti metti in scia! Ti teletrasporti subito dietro al giocatore che ti precede in classifica." },
@@ -253,7 +254,7 @@ specials: {
 28: { type: 'SWITCH', name: 'Switch', icon: <ArrowLeftRight />, desc: "Caos! Scambi la posizione con un giocatore a caso." },
 31: { type: 'WAIT', turns: 2, name: 'Pozzo 2', icon: <RefreshCcw />, desc: "Un altro pozzo! Aspetta 2 turni." },
 33: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Ti piazzi davanti! Vai alla casella davanti al giocatore che ti segue." },
-39: { type: 'CHALLENGE', name: 'Sfida', icon: <SwordsIcon />, desc: "Sfida un giocatore! Best of 3." },
+            39: { type: 'CHALLENGE', name: 'Sfida', icon: <SwordsIcon />, desc: "Sfida un giocatore! Best of 3." },
 42: { type: 'BACK', val: 30, name: 'Labirinto', icon: <ArrowDown />, desc: "Ti sei perso nel Labirinto! Torni indietro alla casella 30." },
 44: { type: 'DECISION', name: 'Decisione', icon: <Gavel />, desc: "Scegli il tuo destino! 3 opzioni casuali." },
 45: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." },
@@ -422,7 +423,7 @@ if (special.type === 'TAIL' || special.type === 'FRONT' || special.type === 'TEL
 if (special.type === 'DECISION') { bgClass = "bg-amber-100"; borderClass = "border-amber-400"; }
 if (special.type === 'EXTRA_DICE') { bgClass = "bg-blue-200"; borderClass = "border-blue-500"; }
 if (special.type === 'RESTART') { bgClass = "bg-red-200"; borderClass = "border-red-500"; }
-if (special.type === 'CHALLENGE') { bgClass = "bg-amber-500 text-white"; borderClass = "border-amber-700"; }
+                if (special.type === 'CHALLENGE') { bgClass = "bg-amber-500 text-white"; borderClass = "border-amber-700"; }
 }
 
 if (isLava) { bgClass = "bg-orange-500 animate-pulse ring-2 ring-red-600"; borderClass = "border-red-600"; }
@@ -521,7 +522,8 @@ if (isTargetSelection) {
 <Pointer className="text-yellow-600 animate-bounce w-8 h-8 drop-shadow-md fill-yellow-300" />
 </div>
 )}
-{special && !isVoid && <div className={`text-[8px] md:text-[10px] text-center leading-tight truncate font-semibold opacity-80 ${hasGem || isLava || isBlackHole || tileOwnerColor || isSniperTarget || isWarning || special.type === 'CHALLENGE' ? 'text-white' : ''}`}>{special.name}</div>}
+                {special && !isVoid && <div className={`text-[8px] md:text-[10px] text-center leading-tight truncate font-semibold opacity-80 ${hasGem || isLava || isBlackHole || tileOwnerColor || isSniperTarget || isWarning ? 'text-white' : ''}`}>{special.name}</div>}
+                {special && !isVoid && <div className={`text-[8px] md:text-[10px] text-center leading-tight truncate font-semibold opacity-80 ${hasGem || isLava || isBlackHole || tileOwnerColor || isSniperTarget || isWarning || special.type === 'CHALLENGE' ? 'text-white' : ''}`}>{special.name}</div>}
 </div>
 );
 };
@@ -573,8 +575,9 @@ else if (botSpeed === 2) setBotSpeed(10); // MAX Speed (Instant)
 else setBotSpeed(1); // Reset
 };
 
-// ... (generateEliminationSpecials, generateCoins, useEffects, createRoom, joinRoom, setGuard, startGame, fillLobbyBots, addBot, selectChar, updatePaintColor, switchTeam, toggleBotModeLobby, toggleGenericBotMode, isPawnLocked, checkTeamWin, getGridWidth, getCoords, getManhattanDistance, executeTileMove - NO CHANGES) ...
-
+            
+            // ... (generateEliminationSpecials, generateCoins, useEffects, createRoom, joinRoom, setGuard, startGame, fillLobbyBots, addBot, selectChar, updatePaintColor, switchTeam, toggleBotModeLobby, toggleGenericBotMode, isPawnLocked, checkTeamWin, getGridWidth, getCoords, getManhattanDistance, executeTileMove - NO CHANGES) ...
+            
 const generateEliminationSpecials = () => {
 const max = 34;
 const pool = [
@@ -657,9 +660,10 @@ return () => clearTimeout(t);
 }
 }, [currentRoom?.lastAction]);
 
-// ... (createRoom, joinRoom, setGuard, startGame, fillLobbyBots, addBot, selectChar, updatePaintColor, switchTeam, toggleBotModeLobby, toggleGenericBotMode, isPawnLocked, checkTeamWin, getGridWidth, getCoords, getManhattanDistance, executeTileMove functions are preserved) ...
-
-const createRoom = async (mode) => {
+            const createRoom = async (mode) => {
+            // ... (createRoom, joinRoom, setGuard, startGame, fillLobbyBots, addBot, selectChar, updatePaintColor, switchTeam, toggleBotModeLobby, toggleGenericBotMode, isPawnLocked, checkTeamWin, getGridWidth, getCoords, getManhattanDistance, executeTileMove functions are preserved) ...
+            
+             const createRoom = async (mode) => {
 if (!nickname || !user) return;
 try {
 const code = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -747,7 +751,8 @@ playerObj.lives = 3;
 }
 
 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', code), {
-code, hostId: user.uid, gameMode: mode, teamConfig: mode === 'relay' ? relayConfig : null, status: 'waiting', currentTurn: 0, round: 1, ...extraData, duelState: null,
+                        code, hostId: user.uid, gameMode: mode, teamConfig: mode === 'relay' ? relayConfig : null, status: 'waiting', currentTurn: 0, round: 1, ...extraData,
+                        code, hostId: user.uid, gameMode: mode, teamConfig: mode === 'relay' ? relayConfig : null, status: 'waiting', currentTurn: 0, round: 1, ...extraData, duelState: null,
 players: [playerObj],
 lastAction: "Stanza Creata"
 });
@@ -933,6 +938,8 @@ await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCod
 } catch (e) { handleError(e); }
 };
 
+            // ... (selectChar, updatePaintColor, switchTeam, toggleBotModeLobby, toggleGenericBotMode, isPawnLocked, checkTeamWin, getCoords, getManhattanDistance, executeTileMove - NO CHANGES) ...
+            
 const selectChar = async (charId) => {
 if (!currentRoom || !user) return;
 try {
@@ -1197,14 +1204,14 @@ else if (special.type === 'DECISION') {
 if (player.isBot) { const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)]; log += ` Scelta Bot: ${picked.name}!`; if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; } } 
 else { await sleep(500/botSpeed); const shuffled = [...DECISION_POOL].sort(() => 0.5 - Math.random()); setDecisionOptions(shuffled.slice(0, 3)); setDecisionMode(true); setTargetSelectionMode(null); tempPlayers[currentPlayerIdx].position = finalPos; tempPlayers[currentPlayerIdx].pendingTarget = null; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` }); setIsMoving(false); return; }
 }
-else if (special.type === 'CHALLENGE') {
-await sleep(500/botSpeed);
-setTargetSelectionMode('duel');
-tempPlayers[currentPlayerIdx].position = finalPos;
-tempPlayers[currentPlayerIdx].pendingTarget = null;
-await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, lastAction: `${player.name} deve scegliere uno sfidante!` });
-setIsMoving(false); return;
-}
+                        else if (special.type === 'CHALLENGE') {
+                            await sleep(500/botSpeed);
+                            setTargetSelectionMode('duel');
+                            tempPlayers[currentPlayerIdx].position = finalPos;
+                            tempPlayers[currentPlayerIdx].pendingTarget = null;
+                            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, lastAction: `${player.name} deve scegliere uno sfidante!` });
+                            setIsMoving(false); return;
+                        }
 else if (special.type === 'EXTRA_DICE') { tempPlayers[currentPlayerIdx].extraDice = true; playSound('powerup'); }
 if (special.type === 'WAIT') extraTurns = special.turns;
 }
@@ -1219,7 +1226,8 @@ let updates = { players: tempPlayers, lastAction: log };
 if (freshRoom.gameMode === 'gem_hunt') updates.gemLocations = tempGemLocations;
 if (freshRoom.gameMode === 'raid_boss') updates.bossHp = tempBossHp;
 
-// ... (rest of logic: win conditions, tournament, next turn) ...
+                    
+                    // ... (rest of logic: win conditions, tournament, next turn) ...
 let justFinished = false;
 let hasWon = false;
 if (freshRoom.gameMode === 'gem_hunt' && tempPlayers[currentPlayerIdx].collectedGems.length >= 5) { hasWon = true; }
@@ -1392,120 +1400,121 @@ const playerIdx = currentRoom.currentTurn;
 if (targetIdx === -1 || targetIdx === playerIdx) return;
 let updatedPlayers = [...currentRoom.players];
 updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
-
+                
 if (targetSelectionMode === 'target_back_4') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 4); playSound('punch'); }
 else if (targetSelectionMode === 'curse') { updatedPlayers[targetIdx].activeCurse = true; playSound('curse'); }
-else if (targetSelectionMode === 'duel') {
-// Start Duel Mode
-const challenger = updatedPlayers[playerIdx];
-const target = updatedPlayers[targetIdx];
-await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), {
-duelState: {
-active: true,
-challengerUid: challenger.uid,
-targetUid: target.uid,
-round: 1,
-cWins: 0,
-tWins: 0,
-cRoll: null,
-tRoll: null,
-phase: 'waiting_c' // waiting for challenger roll
-},
-players: updatedPlayers,
-lastAction: `${challenger.name} HA SFIDATO ${target.name}!`
-});
-setTargetSelectionMode(null);
-return; // Don't advance turn yet
-}
-
+                else if (targetSelectionMode === 'duel') {
+                    // Start Duel Mode
+                    const challenger = updatedPlayers[playerIdx];
+                    const target = updatedPlayers[targetIdx];
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), {
+                        duelState: {
+                            active: true,
+                            challengerUid: challenger.uid,
+                            targetUid: target.uid,
+                            round: 1,
+                            cWins: 0,
+                            tWins: 0,
+                            cRoll: null,
+                            tRoll: null,
+                            phase: 'waiting_c' // waiting for challenger roll
+                        },
+                        players: updatedPlayers,
+                        lastAction: `${challenger.name} HA SFIDATO ${target.name}!`
+                    });
+                    setTargetSelectionMode(null);
+                    return; // Don't advance turn yet
+                }
+                
 setTargetSelectionMode(null); setDecisionMode(false); setDecisionOptions([]);
 const nextTurn = getNextTurn(updatedPlayers, playerIdx);
-await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, currentTurn: nextTurn, lastAction: `${updatedPlayers[playerIdx].name} ha completato l'azione!` });
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, currentTurn: nextTurn, lastAction: `${updatedPlayers[playerIdx].name} colpisce ${updatedPlayers[targetIdx].name}!` });
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, currentTurn: nextTurn, lastAction: `${updatedPlayers[playerIdx].name} ha completato l'azione!` });
+            };
+
+            const processDuelStep = async (role) => {
+                if (!currentRoom || !currentRoom.duelState) return;
+                const duel = currentRoom.duelState;
+                const roll = Math.floor(Math.random() * 6) + 1;
+                playSound('roll');
+
+                let updates = {};
+                let log = "";
+
+                if (role === 'challenger' && duel.phase === 'waiting_c') {
+                    updates = {
+                        'duelState.cRoll': roll,
+                        'duelState.phase': 'waiting_t'
+                    };
+                } else if (role === 'target' && duel.phase === 'waiting_t') {
+                    // Target rolls, compare logic
+                    const cRoll = duel.cRoll;
+                    const tRoll = roll;
+                    let newCWins = duel.cWins;
+                    let newTWins = duel.tWins;
+                    let winnerName = "";
+                    
+                    if (cRoll > tRoll) { newCWins++; winnerName = "Sfidante"; }
+                    else if (tRoll > cRoll) { newTWins++; winnerName = "Avversario"; }
+                    else { /* Tie, no points or handled as draw */ }
+
+                    // Check if match ends
+                    // Best of 3: if someone reaches 2 wins, or after 3 rounds
+                    let duelOver = false;
+                    let finalWinner = null; // 'challenger' or 'target'
+
+                    if (newCWins >= 2) { duelOver = true; finalWinner = 'challenger'; }
+                    else if (newTWins >= 2) { duelOver = true; finalWinner = 'target'; }
+                    else if (duel.round >= 3) {
+                        duelOver = true;
+                        if (newCWins > newTWins) finalWinner = 'challenger';
+                        else if (newTWins > newCWins) finalWinner = 'target';
+                        else finalWinner = 'draw'; // Draw (usually challenger loses benefit or nothing happens)
+                    }
+
+                    if (duelOver) {
+                        // Apply Effects
+                        let players = [...currentRoom.players];
+                        const cIdx = players.findIndex(p => p.uid === duel.challengerUid);
+                        const tIdx = players.findIndex(p => p.uid === duel.targetUid);
+                        const configMax = (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60))));
+
+                        if (finalWinner === 'challenger') {
+                            players[cIdx].position = Math.min(configMax, players[cIdx].position + 6);
+                            log = `${players[cIdx].name} VINCE IL DUELLO! (+6)`;
+                            playSound('win');
+                        } else {
+                            // Target wins or draw (challenger fails)
+                            players[cIdx].position = Math.max(0, players[cIdx].position - 3);
+                            players[tIdx].position = Math.min(configMax, players[tIdx].position + 3);
+                            log = `${players[cIdx].name} PERDE IL DUELLO! (-3, Avversario +3)`;
+                            playSound('lose');
+                        }
+
+                        updates = {
+                            duelState: null,
+                            players: players,
+                            lastAction: log,
+                            currentTurn: getNextTurn(players, currentRoom.currentTurn)
+                        };
+                    } else {
+                        // Next Round
+                        updates = {
+                            'duelState.cWins': newCWins,
+                            'duelState.tWins': newTWins,
+                            'duelState.round': duel.round + 1,
+                            'duelState.phase': 'waiting_c',
+                            'duelState.cRoll': null,
+                            'duelState.tRoll': null
+                        };
+                    }
+                }
+                
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
 };
 
-const processDuelStep = async (role) => {
-if (!currentRoom || !currentRoom.duelState) return;
-const duel = currentRoom.duelState;
-const roll = Math.floor(Math.random() * 6) + 1;
-playSound('roll');
-
-let updates = {};
-let log = "";
-
-if (role === 'challenger' && duel.phase === 'waiting_c') {
-updates = {
-'duelState.cRoll': roll,
-'duelState.phase': 'waiting_t'
-};
-} else if (role === 'target' && duel.phase === 'waiting_t') {
-// Target rolls, compare logic
-const cRoll = duel.cRoll;
-const tRoll = roll;
-let newCWins = duel.cWins;
-let newTWins = duel.tWins;
-let winnerName = "";
-
-if (cRoll > tRoll) { newCWins++; winnerName = "Sfidante"; }
-else if (tRoll > cRoll) { newTWins++; winnerName = "Avversario"; }
-else { /* Tie, no points or handled as draw */ }
-
-// Check if match ends
-// Best of 3: if someone reaches 2 wins, or after 3 rounds
-let duelOver = false;
-let finalWinner = null; // 'challenger' or 'target'
-
-if (newCWins >= 2) { duelOver = true; finalWinner = 'challenger'; }
-else if (newTWins >= 2) { duelOver = true; finalWinner = 'target'; }
-else if (duel.round >= 3) {
-duelOver = true;
-if (newCWins > newTWins) finalWinner = 'challenger';
-else if (newTWins > newCWins) finalWinner = 'target';
-else finalWinner = 'draw'; // Draw (usually challenger loses benefit or nothing happens)
-}
-
-if (duelOver) {
-// Apply Effects
-let players = [...currentRoom.players];
-const cIdx = players.findIndex(p => p.uid === duel.challengerUid);
-const tIdx = players.findIndex(p => p.uid === duel.targetUid);
-const configMax = (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : 60))));
-
-if (finalWinner === 'challenger') {
-players[cIdx].position = Math.min(configMax, players[cIdx].position + 6);
-log = `${players[cIdx].name} VINCE IL DUELLO! (+6)`;
-playSound('win');
-} else {
-// Target wins or draw (challenger fails)
-players[cIdx].position = Math.max(0, players[cIdx].position - 3);
-players[tIdx].position = Math.min(configMax, players[tIdx].position + 3);
-log = `${players[cIdx].name} PERDE IL DUELLO! (-3, Avversario +3)`;
-playSound('lose');
-}
-
-updates = {
-duelState: null,
-players: players,
-lastAction: log,
-currentTurn: getNextTurn(players, currentRoom.currentTurn)
-};
-} else {
-// Next Round
-updates = {
-'duelState.cWins': newCWins,
-'duelState.tWins': newTWins,
-'duelState.round': duel.round + 1,
-'duelState.phase': 'waiting_c',
-'duelState.cRoll': null,
-'duelState.tRoll': null
-};
-}
-}
-
-await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
-};
-
-// ... (rest of the file: handleSniperTileClick, confirmSniperShot, useEffect, updateBrConfig, handleRoll, toggleBotMode, getNextTurn, autoBot useEffect, UI Rendering) ...
-
+            // ... (rest of the file: handleSniperTileClick, confirmSniperShot, useEffect, updateBrConfig, handleRoll, toggleBotMode, getNextTurn, autoBot useEffect, UI Rendering) ...
+            
 const handleSniperTileClick = (idx) => { if (currentRoom.gameMode !== 'sniper' || !canControlCurrent) return; let newSelection = [...sniperSelection]; if (newSelection.includes(idx)) newSelection = newSelection.filter(i => i !== idx); else if (newSelection.length < 3) newSelection.push(idx); setSniperSelection(newSelection); };
 const confirmSniperShot = async () => { if (sniperSelection.length === 0) return; const playerIdx = currentRoom.currentTurn; const player = currentRoom.players[playerIdx]; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { sniperTargets: sniperSelection, lastAction: `${player.name} ha mirato su ${sniperSelection.length} caselle!`, currentTurn: getNextTurn(currentRoom.players, playerIdx) }); setSniperSelection([]); };
 
@@ -1561,6 +1570,7 @@ if (isBoss) { vals = BOSS_DICE_VALS; } else if (freshRoom.activeGlitch === 'curs
 for(let i=0; i<8; i++) { setLastRoll(vals[Math.floor(Math.random() * vals.length)]); await sleep(40/botSpeed); }
 let val = vals[Math.floor(Math.random() * vals.length)];
 
+                    if (player.extraDice) { val += Math.floor(Math.random() * 6) + 1; }
                     let extraMsg = "";
                     let isExtraRoll = false;
                     if (player.extraDice) { 
@@ -1570,7 +1580,6 @@ let val = vals[Math.floor(Math.random() * vals.length)];
                     }
                     
                     setLastRollExtras({ isExtra: isExtraRoll });
-                    if (player.extraDice) { val += Math.floor(Math.random() * 6) + 1; }
 
 if (isGuard) val += 2;
 if (freshRoom.activeGlitch === 'gravity') val = val * 2; 
@@ -1595,8 +1604,8 @@ const maxVal = config.max !== undefined ? config.max : 60;
 let newPos; if (isReverse) { newPos = Math.max(0, player.position - val); } else { newPos = Math.max(0, Math.min(maxVal, player.position + val)); }
 
 updated[playerIdx].pendingTarget = newPos;
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}${extraMsg}!` });
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}!` });
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}${extraMsg}!` });
 } catch (e) { handleError(e); } finally {
 // Safe reset
 clearTimeout(rollSafety);
@@ -1618,23 +1627,23 @@ loop++;
 return next;
 };
 
-// AUTO-BOT & DUEL BOT LOGIC
+            // AUTO-BOT & DUEL BOT LOGIC
 useEffect(() => {
 if (currentRoom?.status === 'playing') {
-// DUEL LOGIC FOR BOTS
-if (currentRoom.duelState && currentRoom.duelState.active && currentRoom.hostId === user?.uid) {
-const duel = currentRoom.duelState;
-const challenger = currentRoom.players.find(p => p.uid === duel.challengerUid);
-const target = currentRoom.players.find(p => p.uid === duel.targetUid);
-
-if (duel.phase === 'waiting_c' && challenger.isBot) {
-const t = setTimeout(() => processDuelStep('challenger'), 1000);
-return () => clearTimeout(t);
-} else if (duel.phase === 'waiting_t' && target.isBot) {
-const t = setTimeout(() => processDuelStep('target'), 1000);
-return () => clearTimeout(t);
-}
-}
+                    // DUEL LOGIC FOR BOTS
+                    if (currentRoom.duelState && currentRoom.duelState.active && currentRoom.hostId === user?.uid) {
+                        const duel = currentRoom.duelState;
+                        const challenger = currentRoom.players.find(p => p.uid === duel.challengerUid);
+                        const target = currentRoom.players.find(p => p.uid === duel.targetUid);
+                        
+                        if (duel.phase === 'waiting_c' && challenger.isBot) {
+                            const t = setTimeout(() => processDuelStep('challenger'), 1000);
+                            return () => clearTimeout(t);
+                        } else if (duel.phase === 'waiting_t' && target.isBot) {
+                            const t = setTimeout(() => processDuelStep('target'), 1000);
+                            return () => clearTimeout(t);
+                        }
+                    }
 
 const p = currentRoom.players[currentRoom.currentTurn];
 if (!p) return;
@@ -1654,7 +1663,8 @@ const shouldAutoRun = p.isBot && currentRoom.hostId === user?.uid && !isRolling 
 const botMode = currentRoom.teamBotModes?.[p.uid] || 'auto';
 const isGenericBot = p.isBot && currentRoom.gameMode !== 'relay' && currentRoom.hostId === user?.uid && !isRolling && !isMoving && !decisionMode && !directionChoice && botMode === 'auto';
 
-if (!currentRoom.duelState && ((currentRoom.gameMode === 'relay' && shouldAutoRun) || (currentRoom.gameMode !== 'relay' && isGenericBot))) {
+                    if ((currentRoom.gameMode === 'relay' && shouldAutoRun) || (currentRoom.gameMode !== 'relay' && isGenericBot)) {
+                    if (!currentRoom.duelState && ((currentRoom.gameMode === 'relay' && shouldAutoRun) || (currentRoom.gameMode !== 'relay' && isGenericBot))) {
 // Reduced Delays for Snappier Bots
 const delay = 1000 / botSpeed; 
 const moveDelay = 500 / botSpeed;
@@ -1689,7 +1699,8 @@ return () => clearTimeout(t);
 }
 }
 }
-}, [currentRoom?.currentTurn, currentRoom?.status, currentRoom?.duelState, isRolling, isMoving, user, directionChoice, decisionMode, botSpeed]);
+            }, [currentRoom?.currentTurn, currentRoom?.status, isRolling, isMoving, user, directionChoice, decisionMode, botSpeed]);
+            }, [currentRoom?.currentTurn, currentRoom?.status, currentRoom?.duelState, isRolling, isMoving, user, directionChoice, decisionMode, botSpeed]);
 
 if (!user) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-black">MULTIVERSE RUN</div>;
 const currentPlayer = currentRoom?.players?.[currentRoom.currentTurn];
@@ -1709,87 +1720,90 @@ currentPlayer.uid === user.uid ||
 
 const isSniperTurn = currentRoom?.gameMode === 'sniper' && currentPlayer?.uid === currentRoom?.sniperUid && canControlCurrent;
 
-// --- DUEL CONSTANTS ---
-const duelActive = currentRoom?.duelState && currentRoom.duelState.active;
-const duelData = duelActive ? currentRoom.duelState : null;
-const duelChallenger = duelActive ? currentRoom.players.find(p => p.uid === duelData.challengerUid) : null;
-const duelTarget = duelActive ? currentRoom.players.find(p => p.uid === duelData.targetUid) : null;
-const isChallengerTurn = duelActive && duelData.phase === 'waiting_c';
-const isTargetTurn = duelActive && duelData.phase === 'waiting_t';
-const canControlDuel = duelActive && (
-(isChallengerTurn && (duelChallenger.uid === user.uid || (duelChallenger.isBot && currentRoom.hostId === user.uid))) ||
-(isTargetTurn && (duelTarget.uid === user.uid || (duelTarget.isBot && currentRoom.hostId === user.uid)))
-);
+            // --- DUEL CONSTANTS ---
+            const duelActive = currentRoom?.duelState && currentRoom.duelState.active;
+            const duelData = duelActive ? currentRoom.duelState : null;
+            const duelChallenger = duelActive ? currentRoom.players.find(p => p.uid === duelData.challengerUid) : null;
+            const duelTarget = duelActive ? currentRoom.players.find(p => p.uid === duelData.targetUid) : null;
+            const isChallengerTurn = duelActive && duelData.phase === 'waiting_c';
+            const isTargetTurn = duelActive && duelData.phase === 'waiting_t';
+            const canControlDuel = duelActive && (
+                (isChallengerTurn && (duelChallenger.uid === user.uid || (duelChallenger.isBot && currentRoom.hostId === user.uid))) ||
+                (isTargetTurn && (duelTarget.uid === user.uid || (duelTarget.isBot && currentRoom.hostId === user.uid)))
+            );
 
 return (
 <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative">
 
-{/* DUEL MODAL */}
-{duelActive && duelChallenger && duelTarget && (
-<div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
-<div className="max-w-lg w-full bg-slate-900 rounded-3xl shadow-2xl border-4 border-amber-500 overflow-hidden relative">
-<div className="bg-amber-500 p-4 text-center">
-<h2 className="text-3xl font-black text-black uppercase flex items-center justify-center gap-2"><SwordsIcon size={32}/> DUELLO!</h2>
-<p className="font-bold text-amber-900 uppercase">Round {duelData.round} / 3</p>
-</div>
+                {(targetSelectionMode || bossTargetSelection) && canControlCurrent && (
+                {/* DUEL MODAL */}
+                {duelActive && duelChallenger && duelTarget && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+                        <div className="max-w-lg w-full bg-slate-900 rounded-3xl shadow-2xl border-4 border-amber-500 overflow-hidden relative">
+                             <div className="bg-amber-500 p-4 text-center">
+                                 <h2 className="text-3xl font-black text-black uppercase flex items-center justify-center gap-2"><SwordsIcon size={32}/> DUELLO!</h2>
+                                 <p className="font-bold text-amber-900 uppercase">Round {duelData.round} / 3</p>
+                             </div>
+                             
+                             <div className="p-8 flex items-center justify-between">
+                                 {/* CHALLENGER SIDE */}
+                                 <div className={`flex flex-col items-center gap-2 transition-all ${isChallengerTurn ? 'scale-110 opacity-100' : 'opacity-50'}`}>
+                                     <div className={`p-2 rounded-full border-4 ${isChallengerTurn ? 'border-amber-400 shadow-[0_0_20px_orange]' : 'border-slate-600'}`}>
+                                         <PlayerAvatar charId={duelChallenger.characterId} size="lg"/>
+                                     </div>
+                                     <div className="text-white font-black text-lg">{duelChallenger.name}</div>
+                                     <div className="text-amber-400 font-black text-2xl">{duelData.cWins} WIN</div>
+                                     {duelData.cRoll !== null && (
+                                         <div className="bg-white text-black w-12 h-12 flex items-center justify-center rounded-xl font-black text-2xl animate-bounce">
+                                             {duelData.cRoll}
+                                         </div>
+                                     )}
+                                 </div>
 
-<div className="p-8 flex items-center justify-between">
-{/* CHALLENGER SIDE */}
-<div className={`flex flex-col items-center gap-2 transition-all ${isChallengerTurn ? 'scale-110 opacity-100' : 'opacity-50'}`}>
-<div className={`p-2 rounded-full border-4 ${isChallengerTurn ? 'border-amber-400 shadow-[0_0_20px_orange]' : 'border-slate-600'}`}>
-<PlayerAvatar charId={duelChallenger.characterId} size="lg"/>
-</div>
-<div className="text-white font-black text-lg">{duelChallenger.name}</div>
-<div className="text-amber-400 font-black text-2xl">{duelData.cWins} WIN</div>
-{duelData.cRoll !== null && (
-<div className="bg-white text-black w-12 h-12 flex items-center justify-center rounded-xl font-black text-2xl animate-bounce">
-{duelData.cRoll}
-</div>
-)}
-</div>
+                                 <div className="text-white font-black text-4xl italic opacity-30">VS</div>
 
-<div className="text-white font-black text-4xl italic opacity-30">VS</div>
+                                 {/* TARGET SIDE */}
+                                 <div className={`flex flex-col items-center gap-2 transition-all ${isTargetTurn ? 'scale-110 opacity-100' : 'opacity-50'}`}>
+                                     <div className={`p-2 rounded-full border-4 ${isTargetTurn ? 'border-amber-400 shadow-[0_0_20px_orange]' : 'border-slate-600'}`}>
+                                         <PlayerAvatar charId={duelTarget.characterId} size="lg"/>
+                                     </div>
+                                     <div className="text-white font-black text-lg">{duelTarget.name}</div>
+                                     <div className="text-amber-400 font-black text-2xl">{duelData.tWins} WIN</div>
+                                     {duelData.tRoll !== null && (
+                                         <div className="bg-white text-black w-12 h-12 flex items-center justify-center rounded-xl font-black text-2xl animate-bounce">
+                                             {duelData.tRoll}
+                                         </div>
+                                     )}
+                                 </div>
+                             </div>
 
-{/* TARGET SIDE */}
-<div className={`flex flex-col items-center gap-2 transition-all ${isTargetTurn ? 'scale-110 opacity-100' : 'opacity-50'}`}>
-<div className={`p-2 rounded-full border-4 ${isTargetTurn ? 'border-amber-400 shadow-[0_0_20px_orange]' : 'border-slate-600'}`}>
-<PlayerAvatar charId={duelTarget.characterId} size="lg"/>
-</div>
-<div className="text-white font-black text-lg">{duelTarget.name}</div>
-<div className="text-amber-400 font-black text-2xl">{duelData.tWins} WIN</div>
-{duelData.tRoll !== null && (
-<div className="bg-white text-black w-12 h-12 flex items-center justify-center rounded-xl font-black text-2xl animate-bounce">
-{duelData.tRoll}
-</div>
-)}
-</div>
-</div>
+                             <div className="p-6 pt-0">
+                                 {canControlDuel ? (
+                                     <button 
+                                         onClick={() => processDuelStep(isChallengerTurn ? 'challenger' : 'target')}
+                                         className={`w-full py-6 rounded-2xl font-black text-2xl uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isChallengerTurn ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}`}
+                                     >
+                                         <Dices className="inline mb-1 mr-2"/>
+                                         {isChallengerTurn ? `TIRA ${duelChallenger.name}!` : `TIRA ${duelTarget.name}!`}
+                                     </button>
+                                 ) : (
+                                     <div className="w-full py-6 bg-slate-800 rounded-2xl text-slate-500 font-black text-center text-xl uppercase animate-pulse border-2 border-slate-700">
+                                         IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
+                                     </div>
+                                 )}
+                             </div>
+                        </div>
+                    </div>
+                )}
 
-<div className="p-6 pt-0">
-{canControlDuel ? (
-<button 
-onClick={() => processDuelStep(isChallengerTurn ? 'challenger' : 'target')}
-className={`w-full py-6 rounded-2xl font-black text-2xl uppercase tracking-widest shadow-xl transition-all active:scale-95 ${isChallengerTurn ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white'}`}
->
-<Dices className="inline mb-1 mr-2"/>
-{isChallengerTurn ? `TIRA ${duelChallenger.name}!` : `TIRA ${duelTarget.name}!`}
-</button>
-) : (
-<div className="w-full py-6 bg-slate-800 rounded-2xl text-slate-500 font-black text-center text-xl uppercase animate-pulse border-2 border-slate-700">
-IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
-</div>
-)}
-</div>
-</div>
-</div>
-)}
-
-{(targetSelectionMode || bossTargetSelection) && canControlCurrent && !duelActive && (
+                {(targetSelectionMode || bossTargetSelection) && canControlCurrent && !duelActive && (
 <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
 <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border-4 border-indigo-500 overflow-hidden flex flex-col max-h-[80vh]">
 <div className="p-4 bg-indigo-600 text-white text-center">
-<h3 className="font-black text-xl uppercase flex items-center justify-center gap-2"><Target/> {bossTargetSelection ? "MARCHIA UN BERSAGLIO" : (targetSelectionMode === 'duel' ? "SCEGLI LO SFIDANTE" : "Seleziona Bersaglio")}</h3>
-<p className="text-xs opacity-75">{bossTargetSelection ? "Il Boss sceglie la sua preda!" : (targetSelectionMode === 'duel' ? "Chi vuoi sfidare al lancio dei dadi?" : "Chi vuoi colpire?")}</p>
+                                <h3 className="font-black text-xl uppercase flex items-center justify-center gap-2"><Target/> {bossTargetSelection ? "MARCHIA UN BERSAGLIO" : (targetSelectionMode === 'minigame_opponent' ? "SFIDA UN AVVERSARIO" : "Seleziona Bersaglio")}</h3>
+                                <p className="text-xs opacity-75">{bossTargetSelection ? "Il Boss sceglie la sua preda!" : (targetSelectionMode === 'minigame_opponent' ? "Chi vuoi sfidare al minigioco?" : "Chi vuoi colpire?")}</p>
+                                <h3 className="font-black text-xl uppercase flex items-center justify-center gap-2"><Target/> {bossTargetSelection ? "MARCHIA UN BERSAGLIO" : (targetSelectionMode === 'duel' ? "SCEGLI LO SFIDANTE" : "Seleziona Bersaglio")}</h3>
+                                <p className="text-xs opacity-75">{bossTargetSelection ? "Il Boss sceglie la sua preda!" : (targetSelectionMode === 'duel' ? "Chi vuoi sfidare al lancio dei dadi?" : "Chi vuoi colpire?")}</p>
 </div>
 <div className="flex-1 overflow-y-auto p-2 space-y-2">
 {currentRoom.players
@@ -1806,7 +1820,8 @@ IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
 {p.teamId !== undefined && <div className={`text-[10px] uppercase font-bold text-slate-400`}>Team {p.teamId+1}</div>}
 {p.uid === currentRoom.bossTargetUid && <div className="text-xs font-bold text-red-500">ATTUALE BERSAGLIO</div>}
 </div>
-{targetSelectionMode === 'duel' ? <SwordsIcon className="text-slate-300 group-hover:text-red-500"/> : <Pointer className="text-slate-300 group-hover:text-red-500 -rotate-90"/>}
+                                        <Pointer className="text-slate-300 group-hover:text-red-500 -rotate-90"/>
+                                        {targetSelectionMode === 'duel' ? <SwordsIcon className="text-slate-300 group-hover:text-red-500"/> : <Pointer className="text-slate-300 group-hover:text-red-500 -rotate-90"/>}
 </button>
 ))}
 </div>
@@ -1815,8 +1830,9 @@ IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
 </div>
 )}
 
-{/* ... (rest of the UI, including decision modal, cell info modal, error message, top bar, notification, menu, lobby, game board) ... */}
-
+                
+                {/* ... (rest of the UI, including decision modal, cell info modal, error message, top bar, notification, menu, lobby, game board) ... */}
+                
 {decisionMode && !targetSelectionMode && canControlCurrent && (
 <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
 <div className="max-w-md w-full flex flex-col items-center gap-4">
@@ -1836,6 +1852,7 @@ IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
 </div>
 )}
 
+                
 {selectedCellInfo && (
 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
 <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl relative border-4 border-indigo-200">
@@ -1910,8 +1927,9 @@ IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
 </div>
 )}
 
-{/* ... (relay_setup, lobby logic preserved) ... */}
-
+                        
+                        {/* ... (relay_setup, lobby logic preserved) ... */}
+                        
 {view === 'relay_setup' && (
 <div className="max-w-md w-full mt-10 space-y-6 bg-white p-6 rounded-2xl shadow-xl border-4 border-indigo-100">
 <h2 className="text-2xl font-black text-center text-indigo-900">CONFIGURA STAFFETTA</h2>
@@ -1933,7 +1951,8 @@ IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
 </div>}
 </div>
 
-{/* ... (Tournament, Battle Royale, Tiles config panels preserved) ... */}
+                            {/* Tournament Config */}
+                            {/* ... (Tournament, Battle Royale, Tiles config panels preserved) ... */}
 {currentRoom.gameMode === 'tournament' && currentRoom.hostId === user.uid && (
 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-yellow-500 animate-in slide-in-from-top-4">
 <h3 className="font-black text-lg text-yellow-800 mb-4 flex items-center gap-2"><Trophy/> CONFIGURAZIONE TORNEO</h3>
@@ -1950,6 +1969,7 @@ IN ATTESA DI {isChallengerTurn ? duelChallenger.name : duelTarget.name}...
 </div>
 )}
 
+                            {/* Battle Royale Config */}
 {currentRoom.gameMode === 'battle_royale' && currentRoom.hostId === user.uid && (
 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-violet-500 animate-in slide-in-from-top-4">
 <h3 className="font-black text-lg text-violet-800 mb-2 flex items-center gap-2"><List/> CONFIGURAZIONE ROUND</h3>
@@ -1967,6 +1987,7 @@ Round attuali: {brConfigInput.split(',').filter(n=>n.trim()).length}
 </div>
 )}
 
+                            {/* Tiles Mode Configuration Panel */}
 {currentRoom.gameMode === 'tiles' && (
 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-fuchsia-500 animate-in slide-in-from-top-4">
 <h3 className="font-black text-lg text-fuchsia-800 mb-4 flex items-center gap-2"><Palette/> CONFIGURAZIONE TILES</h3>
@@ -2003,8 +2024,10 @@ className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer acc
 </div>
 </div>
 )}
+                            
+                            {/* Player List Panel */}
 
-{/* ... (Player List panel preserved) ... */}
+                            {/* ... (Player List panel preserved) ... */}
 {currentRoom.gameMode === 'relay' ? (
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 {Array.from({ length: currentRoom.teamConfig.teams }).map((_, teamIdx) => {
@@ -2115,17 +2138,31 @@ return (<button key={c.id} onClick={() => selectChar(c.id)} disabled={taken && !
 </div>
 </div>
 )}
+
+                            {currentRoom.gameMode === 'relay' && (
+                                <div className="mt-6">
+                                    <h3 className="font-black text-indigo-900 mb-2 flex items-center gap-2 text-sm uppercase"><User size={16}/> Scegli Personaggio</h3>
+                                    <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                        {ROSTER.map(c => {
+                                            const taken = currentRoom.players.some(p => p.characterId === c.id);
+                                            const mine = currentRoom.players.find(p => p.uid === user.uid)?.characterId === c.id;
+                                            return (<button key={c.id} onClick={() => selectChar(c.id)} disabled={taken && !mine} className={`relative aspect-[3/4] rounded-xl overflow-hidden transition-all bg-slate-100 ${mine ? 'ring-4 ring-indigo-500 scale-105 z-10' : ''} ${taken && !mine ? 'grayscale opacity-50' : ''}`}><img src={c.img} className="w-full h-full object-cover"/><div className={`absolute bottom-0 w-full text-[8px] p-1 font-black text-white ${c.dice.color}`}>{c.dice.name}</div></button>)
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 </div>
 )}
 
-{/* ... (Game View: Top bar, Grid, Bottom Controls, Ranking Sidebar) ... */}
+                        
+                        {/* ... (Game View: Top bar, Grid, Bottom Controls, Ranking Sidebar) ... */}
 {view === 'game' && currentRoom && currentPlayer && (
 <div className="w-full max-w-5xl flex flex-col gap-4">
 <div className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border sticky top-0 z-40">
 <div className="flex items-center gap-3">
 <div className="text-center"><div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Turno</div><div className="font-black text-indigo-900 leading-none">{currentPlayer.name}</div></div>
 <PlayerAvatar charId={currentPlayer.characterId}/>
-{/* ... (Status badges preserved) ... */}
+                                    {/* ... (Status badges preserved) ... */}
 {(currentRoom.gameMode === 'lava' || currentRoom.gameMode === 'glitch' || currentRoom.gameMode === 'brawl') && currentPlayer.lives !== undefined && (
 <div className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded-lg border border-red-200">
 <Heart size={16} className="fill-current"/> <span className="font-black text-lg">{currentPlayer.lives}</span>
@@ -2249,15 +2286,16 @@ warningTiles={currentRoom.warningTiles}
 )}
 
 {/* Normal Dice UI */}
-{!isSniperTurn && !duelActive && canControlCurrent && lastRoll !== null && !isRolling && !directionChoice && !decisionMode && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {!isSniperTurn && canControlCurrent && lastRoll !== null && !isRolling && !directionChoice && !decisionMode && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {!isSniperTurn && !duelActive && canControlCurrent && lastRoll !== null && !isRolling && !directionChoice && !decisionMode && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
 <div className="bg-white/90 backdrop-blur-sm border-2 border-indigo-500 text-indigo-900 rounded-xl p-2 text-center shadow-lg animate-in slide-in-from-bottom-2">
 <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Hai fatto</div>
-                                                <div className="text-3xl font-black leading-none flex items-center justify-center gap-2">
                                                 <div className="text-3xl font-black leading-none">
+                                                <div className="text-3xl font-black leading-none flex items-center justify-center gap-2">
 {lastRoll}
+                                                    {currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid && <span className="text-xs ml-2 text-blue-500 font-bold">(+2 BUFF)</span>}
                                                     {currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid && <span className="text-xs text-blue-500 font-bold">(+2 BUFF)</span>}
                                                     {lastRollExtras?.isExtra && <span className="text-xs text-blue-600 font-black animate-pulse">(+DADO EXTRA)</span>}
-                                                    {currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid && <span className="text-xs ml-2 text-blue-500 font-bold">(+2 BUFF)</span>}
 </div>
 </div>
 )}
@@ -2274,7 +2312,8 @@ warningTiles={currentRoom.warningTiles}
 {directionChoice && canControlCurrent && (
 <div className="bg-white p-4 rounded-2xl shadow-2xl border-4 border-indigo-500 animate-bounce flex flex-col items-center gap-4"><h3 className="font-black text-indigo-900 uppercase">Scegli Direzione: {directionChoice.val}</h3><div className="flex gap-4 w-full"><button onClick={() => confirmGemMove(-1)} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-black uppercase flex flex-col items-center"><ArrowLeft/> Indietro</button><button onClick={() => confirmGemMove(1)} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-black uppercase flex flex-col items-center"><ArrowRight/> Avanti</button></div></div>
 )}
-{!directionChoice && !decisionMode && !bossTargetSelection && !targetSelectionMode && !isSniperTurn && !duelActive && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {!directionChoice && !decisionMode && !bossTargetSelection && !targetSelectionMode && !isSniperTurn && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {!directionChoice && !decisionMode && !bossTargetSelection && !targetSelectionMode && !isSniperTurn && !duelActive && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
 canControlCurrent ? (
 <button onClick={handleRoll} disabled={isRolling || isMoving || currentPlayer.pendingTarget !== null} className={`w-full py-4 rounded-2xl font-black text-2xl shadow-xl transition-all flex items-center justify-center gap-3 border-b-8 active:translate-y-2 active:border-b-0 ${isRolling || isMoving ? 'bg-slate-300 border-slate-400' : 'bg-orange-500 text-white border-orange-700'} ${currentRoom.activeGlitch ? 'glitch-text' : ''}`}>{isRolling ? <Dice5 className="animate-spin"/> : <Dice5/>} <span>{isRolling ? "..." : (currentPlayer.pendingTarget !== null ? "CLICCA LA CASELLA!" : (currentPlayer.activeCurse ? "MALEDETTO!" : "TIRA DADO"))}</span></button>
 ) : (
@@ -2289,7 +2328,8 @@ currentPlayer.isBot ? (
 )
 )
 )}
-{canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !targetSelectionMode && !isSniperTurn && !duelActive && !currentPlayer.activeCurse && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !targetSelectionMode && !isSniperTurn && !currentPlayer.activeCurse && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
+                                        {canControlCurrent && currentPlayer.pendingTarget === null && !directionChoice && !decisionMode && !targetSelectionMode && !isSniperTurn && !duelActive && !currentPlayer.activeCurse && !bossTargetSelection && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
 <div className="bg-white p-3 rounded-xl shadow-lg border-2 flex flex-col gap-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
 <div className="flex justify-between items-end">
 <div className="text-[10px] font-black text-slate-400 uppercase mb-1">{currentRoom.gameMode === 'raid_boss' && currentPlayer.uid === currentRoom.hostId ? "DADO BOSS" : (currentRoom.gameMode === 'hunter' && currentPlayer.uid === currentRoom.guardUid ? "DADO GUARDIA" : "Probabilità")}</div>
@@ -2330,7 +2370,6 @@ if (currentRoom.gameMode === 'tournament') return (b.score || 0) - (a.score || 0
 if (a.isDead && !b.isDead) return 1; 
 if (!a.isDead && b.isDead) return -1;
 if (currentRoom.gameMode === 'tiles') {
-                                    const countA = Object.values
                                     const countA = Object.values(currentRoom.tileOwners || {}).filter(c => c === a.paintColor).length;
                                     const countB = Object.values(currentRoom.tileOwners || {}).filter(c => c === b.paintColor).length;
                                     return countB - countA;
@@ -2379,3 +2418,4 @@ if (currentRoom.gameMode === 'tiles') {
     </script>
 </body>
 </html>
+                                    const countA = Object.values
