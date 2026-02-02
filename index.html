@@ -398,7 +398,7 @@ const PlayerAvatar = ({ charId, size = "md", border = true }) => {
     );
 };
 
-const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCellClick, onInfoClick, gems, infected, isTargetSelection, lavaTiles, blackHolePos, bossTargetUid, tileOwnerColor, isValidMoveTarget, isTilesMode, isReverse, isBattleRoyale, coinLocations, sniperTargets, activeGlitch, currentUserId, voidTiles, warningTiles, isTournament }) => {
+const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCellClick, onInfoClick, gems, infected, isTargetSelection, lavaTiles, blackHolePos, bossTargetUid, tileOwnerColor, isValidMoveTarget, isTilesMode, isReverse, isBattleRoyale, coinLocations, sniperTargets, activeGlitch, currentUserId, voidTiles, warningTiles, isTournament, isPressure }) => {
     let bgClass = "bg-slate-100";
     let borderClass = "border-slate-300";
     let cursorClass = "cursor-pointer"; 
@@ -426,10 +426,10 @@ const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCe
         borderClass = isReverse ? "border-yellow-400" : "border-green-400"; 
     }
     else if (num === (isBattleRoyale ? 40 : (isElimination ? 34 : (special && !special.max && special.max !== 0 ? 60 : 50))) && !tileOwnerColor && !isTilesMode && !isVoid) { 
-        if (num === 60) {
+        if (num === 60 && !isPressure) {
             bgClass = isReverse ? "bg-green-200" : "bg-yellow-200"; 
             borderClass = isReverse ? "border-green-400" : "border-yellow-400";
-        } else {
+        } else if (!isPressure) {
             bgClass = "bg-yellow-200"; borderClass = "border-yellow-400"; 
         }
     }
@@ -751,7 +751,8 @@ function App() {
                 remainingMoves: 0,
                 lives: 1, // Default lives for everyone
                 extraDice: false,
-                score: 0 // Tournament Score
+                score: 0, // Tournament Score
+                laps: 1 // For Pressure Mode
             };
 
             if (mode === 'gem_hunt') playerObj.position = Math.random() > 0.5 ? 0 : 50;
@@ -819,7 +820,8 @@ function App() {
                 remainingMoves: 0,
                 lives: 1, // Default lives
                 extraDice: false,
-                score: 0
+                score: 0,
+                laps: 1
             };
             if (data.gameMode === 'relay') playerObj.teamId = bestTeam;
             if (data.gameMode === 'gem_hunt') playerObj.collectedGems = [];
@@ -894,7 +896,12 @@ function App() {
                 updates.tournamentTotalRounds = tournamentRounds;
                 gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, score: 0}));
             } else { 
-                gamePlayers = gamePlayers.map(p => ({...p, id: p.uid})); 
+                // Ensure pressure mode laps are set (if not already)
+                if (currentRoom.gameMode === 'pressure') {
+                    gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, laps: 1}));
+                } else {
+                    gamePlayers = gamePlayers.map(p => ({...p, id: p.uid})); 
+                }
             }
 
             updates.players = gamePlayers;
@@ -915,7 +922,7 @@ function App() {
             const botId = `bot_auto_${Date.now()}_${i}`;
             const charName = ROSTER[charId].name; 
             bots.push({
-                uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: 0, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: null, remainingMoves: 0, lives: 1, extraDice: false, score: 0
+                uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: 0, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: null, remainingMoves: 0, lives: 1, extraDice: false, score: 0, laps: 1
             });
         }
         try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: [...currentRoom.players, ...bots] }); } catch(e) { handleError(e); }
@@ -946,6 +953,7 @@ function App() {
                 lives: 1, // Default lives
                 extraDice: false,
                 score: 0,
+                laps: 1,
                 ...(currentRoom.gameMode === 'relay' ? { teamId: bestTeam } : {}),
                 ...(currentRoom.gameMode === 'gem_hunt' ? { collectedGems: [] } : {}),
                 ...(currentRoom.gameMode === 'coin_collector' ? { score: 0 } : {}),
@@ -1186,7 +1194,14 @@ function App() {
 
             // Animation Phase for Initial Move
             for (let stepPos of steps) {
-                tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: stepPos };
+                // Handle looping for steps animation if in pressure mode
+                let visualStepPos = stepPos;
+                if (freshRoom.gameMode === 'pressure' && stepPos > 60) {
+                     // Just cap at 60 for animation so it doesn't break rendering, real wrap happens at end
+                     visualStepPos = 60;
+                }
+
+                tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: visualStepPos };
 
                 if (freshRoom.gameMode === 'hunter') {
                     const guards = tempPlayers.filter(p => p.uid === freshRoom.guardUid && !p.isDead);
@@ -1214,6 +1229,16 @@ function App() {
             if (tempPlayers[currentPlayerIdx].isDead) { setIsMoving(false); return; }
 
             let finalPos = targetPos;
+            
+            // PRESSURE MODE WRAP LOGIC
+            if (freshRoom.gameMode === 'pressure' && finalPos >= 60) {
+                 const lapsGained = Math.floor(finalPos / 60);
+                 finalPos = finalPos % 60;
+                 tempPlayers[currentPlayerIdx].laps = (tempPlayers[currentPlayerIdx].laps || 1) + lapsGained;
+                 log += ` GIRO COMPLETATO! (Giro ${tempPlayers[currentPlayerIdx].laps})`;
+                 playSound('win'); // Small win sound for lap
+            }
+
             let log = `${player.name} è alla ${finalPos}.`;
             if (collisionLog.length > 0) log += " " + collisionLog.join(" ");
 
@@ -1222,8 +1247,8 @@ function App() {
             let specialIterations = 0;
             let extraTurns = 0;
 
-            // Loop to handle chains (Double -> Trap -> etc.)
-            while (activeSpecial && specialIterations < 5 && !tempPlayers[currentPlayerIdx].isDead) {
+            // Loop changed to limit iteration to 1 to prevent chaining effects as requested ("Solo una volta")
+            while (activeSpecial && specialIterations < 1 && !tempPlayers[currentPlayerIdx].isDead) {
                 specialIterations++;
                 log += ` ${activeSpecial.name}!`;
 
@@ -1236,7 +1261,7 @@ function App() {
                     await sleep(500/botSpeed); 
                     finalPos += activeSpecial.val; 
                     if (finalPos < 0) finalPos = 0; 
-                    if (finalPos > config.max) finalPos = config.max; 
+                    if (finalPos > config.max && freshRoom.gameMode !== 'pressure') finalPos = config.max; // Don't cap pressure
                     tempPlayers[currentPlayerIdx].position = finalPos; 
                     playSound('step'); 
                 }
@@ -1250,7 +1275,7 @@ function App() {
                     await sleep(800/botSpeed); 
                     const moveAmt = dist > 0 ? dist : (lastRoll || 1); // Fallback if dist is 0
                     finalPos = finalPos + (moveAmt * direction); 
-                    if (finalPos > config.max) finalPos = config.max; 
+                    if (finalPos > config.max && freshRoom.gameMode !== 'pressure') finalPos = config.max; 
                     if (finalPos < 0) finalPos = 0; 
                     tempPlayers[currentPlayerIdx].position = finalPos; 
                     playSound('step'); 
@@ -1320,6 +1345,16 @@ function App() {
                 if (activeSpecial.type === 'WAIT') extraTurns = activeSpecial.turns;
 
                 // Re-evaluate Active Special for next loop iteration
+                // Handle wrap for special detection if needed, or stick to 0-60 map
+                if (finalPos >= 60 && freshRoom.gameMode === 'pressure') {
+                     // Check if landed on special after wrap
+                     const wrappedPos = finalPos % 60;
+                     // We need to commit the wrap before checking special for correctness
+                     finalPos = wrappedPos;
+                     tempPlayers[currentPlayerIdx].laps = (tempPlayers[currentPlayerIdx].laps || 1) + 1;
+                     // Continue loop with new pos
+                }
+
                 activeSpecial = effectiveSpecials[finalPos];
                 
                 // Update Firebase slightly to show intermediate steps if speed allows
@@ -1348,6 +1383,9 @@ function App() {
                 if (freshRoom.gameMode === 'raid_boss' && isBoss) { updates.status = 'finished'; updates.winner = "IL BOSS HA VINTO!"; playSound('skull'); }
                 else if (freshRoom.gameMode === 'hunter' && isGuard) { tempPlayers[currentPlayerIdx].position = 0; updates.lastAction = (updates.lastAction || "") + " FINE PATTUGLIA! SI RICOMINCIA!"; playSound('teleport'); }
                 else if (freshRoom.gameMode === 'sniper' && isSniper) { }
+                else if (freshRoom.gameMode === 'pressure') {
+                    // Logic already handled in loop (wrap around), no win here
+                }
                 else { hasWon = true; }
             }
 
@@ -1437,11 +1475,36 @@ function App() {
                     updates.currentTurn = nextTurn;
                 }
             } else if (freshRoom.gameMode !== 'tournament') {
-                if (finishedCount >= totalPlayers - 1 && totalPlayers > 1) { updates.status = 'finished'; updates.winner = "TUTTI ARRIVATI!"; } 
+                if (finishedCount >= totalPlayers - 1 && totalPlayers > 1 && freshRoom.gameMode !== 'pressure') { updates.status = 'finished'; updates.winner = "TUTTI ARRIVATI!"; } 
+                else if (freshRoom.gameMode === 'pressure' && tempPlayers.filter(p => !p.isDead).length <= 1) {
+                    const winner = tempPlayers.find(p => !p.isDead);
+                    updates.status = 'finished'; 
+                    updates.winner = winner ? `${winner.name} VINCE LA PRESSIONE!` : "NESSUN SOPRAVVISSUTO!";
+                }
                 else {
                     const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                     if (nextTurn <= currentPlayerIdx) {
                         updates.round = (freshRoom.round || 1) + 1;
+
+                        // PRESSURE ELIMINATION LOGIC
+                        if (freshRoom.gameMode === 'pressure' && updates.round % 3 === 0) {
+                            const living = tempPlayers.filter(p => !p.isDead);
+                            if (living.length > 1) {
+                                // Calculate total distance: (laps * 60) + position
+                                // Sort Ascending (Lowest distance first)
+                                living.sort((a,b) => ((a.laps||1)*60 + a.position) - ((b.laps||1)*60 + b.position));
+                                const victim = living[0]; // Player with lowest progress
+                                
+                                const vIdx = tempPlayers.findIndex(p => p.uid === victim.uid);
+                                if (vIdx !== -1) {
+                                    tempPlayers[vIdx].isDead = true;
+                                    log += ` 💀 PRESSURE: ${victim.name} ELIMINATO!`;
+                                    playSound('lose');
+                                    updates.players = tempPlayers;
+                                }
+                            }
+                        }
+
                         if (freshRoom.gameMode === 'glitch') {
                             if (updates.round % 3 === 0) {
                                 const glitches = ['gravity', 'darkness', 'earthquake', 'swap', 'rewind', 'cursed', 'double_dice', 'random_lava', 'black_hole_spawn', 'punitive_round'];
@@ -1998,6 +2061,7 @@ function App() {
                             <div className="grid grid-cols-2 gap-2">
                                 <button onClick={() => createRoom('classic')} disabled={!nickname} className="h-24 bg-green-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Flag className="mx-auto mb-1"/> CLASSICA</button>
                                 <button onClick={() => createRoom('tournament')} disabled={!nickname} className="h-24 bg-yellow-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-yellow-200"><Trophy className="mx-auto mb-1"/> TORNEO</button>
+                                <button onClick={() => createRoom('pressure')} disabled={!nickname} className="h-24 bg-red-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-red-300"><Gauge className="mx-auto mb-1"/> PRESSURE</button>
                                 <button onClick={() => createRoom('glitch')} disabled={!nickname} className="h-24 bg-purple-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-fuchsia-400"><Bug className="mx-auto mb-1"/> GLITCH</button>
                                 <button onClick={() => createRoom('classic_punitive')} disabled={!nickname} className="h-24 bg-rose-700 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Swords className="mx-auto mb-1"/> PUNITIVA</button>
                                 <button onClick={() => createRoom('elimination')} disabled={!nickname} className="h-24 bg-cyan-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Skull className="mx-auto mb-1"/> ELIMINAZIONE</button>
@@ -2290,6 +2354,11 @@ function App() {
                                             }
                                         </div>
                                     )}
+                                    {currentRoom.gameMode === 'pressure' && (
+                                        <div className="flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-lg border border-red-200 font-black text-xs uppercase animate-pulse">
+                                            GIRO {currentPlayer.laps || 1} • PROX ELIM: ROUND {Math.ceil(currentRoom.round/3)*3}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-right">
                                     <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{currentRoom.gameMode.toUpperCase().replace('_', ' ')}</div>
@@ -2307,6 +2376,7 @@ function App() {
                                         isElimination={currentRoom.gameMode === 'elimination'} 
                                         isBattleRoyale={currentRoom.gameMode === 'battle_royale'}
                                         isTournament={currentRoom.gameMode === 'tournament'}
+                                        isPressure={currentRoom.gameMode === 'pressure'}
                                         isPendingTarget={canControlCurrent && currentPlayer.pendingTarget === i} 
                                         isValidMoveTarget={(currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') && canControlCurrent && currentPlayer.remainingMoves > 0 && getManhattanDistance(currentPlayer.position, i, currentRoom.gameMode === 'brawl' ? 8 : 11) === 1 && (!currentRoom.voidTiles || !currentRoom.voidTiles.includes(i))}
                                         onCellClick={isSniperTurn ? () => handleSniperTileClick(i) : (targetSelectionMode ? () => {} : ((currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') && canControlCurrent && currentPlayer.remainingMoves > 0 ? () => executeTileMove(user.uid, i) : () => executeMove(user.uid, i)))}
@@ -2428,6 +2498,14 @@ function App() {
                         <h3 className="font-black text-lg border-b border-white/10 pb-2 flex items-center gap-2"><Trophy size={20} className="text-yellow-400"/> CLASSIFICA</h3>
                         {[...currentRoom.players].sort((a,b) => {
                             if (currentRoom.gameMode === 'tournament') return (b.score || 0) - (a.score || 0); // Tournament Sort by Score
+                            if (currentRoom.gameMode === 'pressure') {
+                                if (a.isDead && !b.isDead) return 1; 
+                                if (!a.isDead && b.isDead) return -1;
+                                // Sort by Total Distance: (Laps * 60) + Position
+                                const distA = ((a.laps || 1) * 60) + a.position;
+                                const distB = ((b.laps || 1) * 60) + b.position;
+                                return distB - distA;
+                            }
                             if (a.isDead && !b.isDead) return 1; 
                             if (!a.isDead && b.isDead) return -1;
                             if (currentRoom.gameMode === 'tiles') {
@@ -2451,7 +2529,7 @@ function App() {
                                 <div className="flex-1 min-w-0">
                                     <div className="font-black text-sm truncate">{p.name}</div>
                                     <div className="text-[10px] font-bold text-white/50 uppercase">
-                                        {currentRoom.gameMode === 'tiles' ? `Tiles: ${tileCount}` : (currentRoom.gameMode === 'coin_collector' ? `${p.score || 0} Punti` : (p.isDead ? 'Eliminato' : (p.finished ? 'Qualificato' : `Casella ${p.position}`)))} 
+                                        {currentRoom.gameMode === 'tiles' ? `Tiles: ${tileCount}` : (currentRoom.gameMode === 'coin_collector' ? `${p.score || 0} Punti` : (p.isDead ? 'Eliminato' : (p.finished ? 'Qualificato' : (currentRoom.gameMode === 'pressure' ? `Giro ${p.laps || 1} • Cas ${p.position}` : `Casella ${p.position}`)) ) )} 
                                         {p.activeCurse && "• Maledetto"}
                                         {p.extraDice && "• DADI++"}
                                         {currentRoom.gameMode === 'gem_hunt' && ` • Gemme: ${p.collectedGems?.length || 0}/5`}
