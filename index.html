@@ -19,7 +19,7 @@
 }
 </script>
 
-<!-- FIX: Usiamo una versione specifica di Babel (7.23.6) per evitare il bug ".targets['esmodules']" -->
+<!-- Babel -->
 <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
 
 <style>
@@ -46,11 +46,9 @@
             #1e1b4b 20px
         );
     }
-    /* Custom scrollbar */
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Glitch Effect */
     @keyframes glitch-anim {
         0% { transform: translate(0) }
         20% { transform: translate(-2px, 2px) }
@@ -64,20 +62,22 @@
         color: #0f0;
         text-shadow: 2px 0 #f0f, -2px 0 #0ff;
     }
-
-    /* Void Tile Animation */
     .void-tile {
         background-color: #0f172a;
         opacity: 0.8;
         background-image: radial-gradient(#1e293b 1px, transparent 1px);
         background-size: 10px 10px;
     }
+    .gold-tile {
+        background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #d97706 100%);
+        border-color: #b45309;
+        box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5), 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
 <div id="root"></div>
 
-<!-- Script principale con data-type="module" per supportare le importazioni ES6 -->
 <script type="text/babel" data-presets="react" data-type="module">
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -86,14 +86,13 @@ import {
   ArrowUp, ArrowDown, Footprints, Crown, Trophy, 
   Zap, Bomb, Flag, Flame, Ghost, ShieldAlert, Pointer, Dices, Info, Medal, User, X, ChevronsUp, Users, Shield, AlertCircle, Shuffle, Gem, Biohazard, ArrowLeft, Swords,
   Gavel, ArrowLeftRight, Sparkles, Ban, MousePointer2, Target, Heart, Crosshair, Disc, Bot, Move, Grid3X3, Palette, Timer, Siren, Rewind, Swords as SwordsIcon, Coins,
-  Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6, Anchor, Droplets, Hand, SkipForward, Gauge, TrendingDown
+  Lock, Activity, MousePointerClick, Crosshair as Scope, Bug, List, Hash, Dice1, Dice2, Dice3, Dice4, Dice6, Anchor, Droplets, Hand, SkipForward, Gauge, TrendingDown, Settings, CheckSquare, Square, Send, MessageSquare
 } from 'lucide-react';
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getAuth, 
     signInAnonymously, 
-    signInWithCustomToken,
     onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
@@ -106,7 +105,6 @@ import {
     arrayUnion 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- CONFIGURAZIONE FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyDTaGJcSOVHg3_2K5SgcrDfANtdn0ewb6s",
     authDomain: "gioco-oca-pincher.firebaseapp.com",
@@ -250,7 +248,7 @@ const getIcon = (icon) => {
 };
 
 const CLASSIC_MAP = {
-    max: 60,
+    max: 65,
     specials: {
         6: { type: 'JUMP', val: 12, name: 'Ponte', icon: <ArrowRight />, desc: "Attraversa il ponte! Vai direttamente alla casella 12." },
         15: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." }, 
@@ -269,7 +267,7 @@ const CLASSIC_MAP = {
         45: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." },
         48: { type: 'TELEPORT', name: 'Teletrasporto', icon: <Shuffle />, desc: "Scambio dimensionale! Vai nella casella di un giocatore a caso." },
         51: { type: 'FRONT', name: 'In Fronte', icon: <Footprints className="rotate-180" />, desc: "Strategia inversa! Ti piazzi davanti all'inseguitore." },
-        52: { type: 'WAIT', turns: 2, name: 'Prigione', icon: <ShieldAlert />, desc: "Sei stato arrestato! Rimani in Prigione per 2 turni." },
+        62: { type: 'WAIT', turns: 2, name: 'Prigione', icon: <ShieldAlert />, desc: "Sei stato arrestato! Rimani in Prigione per 2 turni." },
         58: { type: 'RESTART', name: 'Scheletro', icon: <Skull />, desc: "Lo Scheletro ti ha spaventato! Torni all'inizio (START)." },
         5: { type: 'BOOST', val: 2, name: '+2', icon: <ArrowUp />, desc: "Un piccolo aiuto: avanza di 2 caselle." },
         9: { type: 'BOOST', val: 3, name: '+3', icon: <Zap />, desc: "Sprint! Corri avanti di 3 caselle." },
@@ -413,28 +411,26 @@ const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCe
     const isVoid = voidTiles && voidTiles.includes(num);
     const isWarning = warningTiles && warningTiles.includes(num);
 
-    // Tile Ownership Logic
     if (tileOwnerColor) {
         customStyle = { backgroundColor: tileOwnerColor, borderColor: 'white' };
-        // Lighten the text so numbers are visible on dark colors
         bgClass = "text-white shadow-inner";
     }
 
-    // Normal start/end logic only if NOT in Tiles/Brawl mode
     if (num === 0 && !tileOwnerColor && !isTilesMode && !isVoid) { 
         bgClass = isReverse ? "bg-yellow-200" : "bg-green-200"; 
         borderClass = isReverse ? "border-yellow-400" : "border-green-400"; 
     }
-    else if (num === (isBattleRoyale ? 40 : (isElimination ? 34 : (special && !special.max && special.max !== 0 ? 60 : 50))) && !tileOwnerColor && !isTilesMode && !isVoid) { 
-        if (num === 60 && !isPressure) {
-            bgClass = isReverse ? "bg-green-200" : "bg-yellow-200"; 
-            borderClass = isReverse ? "border-green-400" : "border-yellow-400";
-        } else if (!isPressure) {
-            bgClass = "bg-yellow-200"; borderClass = "border-yellow-400"; 
+    // GESTIONE CASELLA 65 O MAX (DORATA)
+    else if (num === 65 && !tileOwnerColor && !isTilesMode && !isVoid && !isPressure) {
+        bgClass = "gold-tile"; // Nuova classe CSS
+        borderClass = "border-yellow-600";
+    }
+    else if (num === (isBattleRoyale ? 40 : (isElimination ? 34 : (special && !special.max && special.max !== 0 ? 65 : 50))) && !tileOwnerColor && !isTilesMode && !isVoid) { 
+        if (num !== 65) {
+             bgClass = "bg-yellow-200"; borderClass = "border-yellow-400";
         }
     }
     else if (special && !tileOwnerColor && !isVoid) {
-        // Adjust colors for Reverse Mode (Boost is Bad, Back is Good)
         const isBad = (special.type === 'BOOST' && special.val > 0) || special.type === 'DOUBLE';
         const isGood = (special.type === 'BOOST' && special.val < 0) || special.type === 'BACK';
 
@@ -442,8 +438,8 @@ const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCe
             if (isBad) { bgClass = "bg-red-100"; borderClass = "border-red-300"; }
             else if (isGood) { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; }
         } else {
-            if (isBad) { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; } // Actually Good in normal
-            else if (isGood) { bgClass = "bg-red-100"; borderClass = "border-red-300"; } // Actually Bad in normal
+            if (isBad) { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; } 
+            else if (isGood) { bgClass = "bg-red-100"; borderClass = "border-red-300"; } 
         }
         
         if (special.type === 'JUMP') { bgClass = "bg-cyan-100"; borderClass = "border-cyan-300"; }
@@ -462,7 +458,6 @@ const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCe
     if (isWarning) { bgClass = "bg-red-400 animate-pulse ring-4 ring-red-500"; borderClass = "border-red-600"; }
     if (isVoid) { bgClass = "void-tile pointer-events-none"; borderClass = "border-slate-800"; cursorClass = "cursor-default"; }
 
-    // Coin styling
     if (coin) {
         if (coin.val === 3) { bgClass = "bg-yellow-100"; borderClass = "border-yellow-400"; }
         else if (coin.val === 2) { bgClass = "bg-slate-100"; borderClass = "border-slate-300"; }
@@ -491,7 +486,7 @@ const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCe
         >
             <div className="flex justify-between items-start opacity-60">
                 <span className={`font-bold text-xs md:text-sm ${hasGem || isLava || isBlackHole || tileOwnerColor || isSniperTarget || isWarning ? 'text-white/90 drop-shadow-md' : (isVoid ? 'text-slate-700' : '')}`}>
-                    {(!isVoid) && (num === 0 && !isTilesMode ? (isReverse ? 'FINE' : 'START') : (num === 60 && !isTilesMode && isReverse ? 'START' : num))}
+                    {(!isVoid) && (num === 0 && !isTilesMode ? (isReverse ? 'FINE' : 'START') : (num === 65 && !isTilesMode && isReverse ? 'START' : num))}
                 </span>
                 {special && !isLava && !isBlackHole && !isSniperTarget && !isVoid && <span className="text-xs">{resolvedIcon}</span>}
                 {isLava && <Flame className="text-yellow-300 fill-orange-600 animate-bounce" size={16}/>}
@@ -523,14 +518,12 @@ const BoardCell = ({ num, players, special, isElimination, isPendingTarget, onCe
                     </div>
                 )}
                 {players.map(p => {
-                    // DARKNESS GLITCH: Hide opponents if enabled
                     if (activeGlitch === 'darkness' && p.uid !== currentUserId) return null;
 
                     const teamColor = p.teamId !== undefined && TEAM_COLORS[p.teamId] ? TEAM_COLORS[p.teamId].border : 'border-white';
                     return (
                         <div key={p.id} onClick={(e) => {
                             if (isTargetSelection) {
-                                // Let click bubble up if selecting tiles, block if selecting players
                             }
                         }} className={`relative transition-all duration-300 ${p.finished || p.isDead ? 'opacity-50 scale-75' : 'hover:scale-125 hover:z-20'} ${isTargetSelection ? 'cursor-pointer' : ''}`}>
                             <div className={`rounded-full border-2 ${teamColor} p-[1px]`}>
@@ -577,17 +570,29 @@ function App() {
     const [relayConfig, setRelayConfig] = useState({ teams: 2, size: 2 });
     const [turnLimit, setTurnLimit] = useState(10); 
     const [selectedPaintColor, setSelectedPaintColor] = useState(PAINT_COLORS[0]);
+    const [chatInput, setChatInput] = useState('');
+    const [customSettings, setCustomSettings] = useState({
+        lava: false,
+        elimination: false,
+        punitive: false,
+        pressure: false,
+        infection: false,
+        blackHole: false,
+        sniper: false,
+        reverse: false,
+        mapType: 'classic' // 'classic' or 'elimination'
+    });
 
-    // --- SNIPER STATE ---
+    const [chatVisible, setChatVisible] = useState(false);
+    const chatTimerRef = useRef(null);
+
     const [sniperSelection, setSniperSelection] = useState([]);
 
     const [botSpeed, setBotSpeed] = useState(1);
     const [brConfigInput, setBrConfigInput] = useState("");
 
-    // Tournament Config
     const [tournamentRounds, setTournamentRounds] = useState(3);
 
-    // Bot Timer Ref
     const lastBotTurnRef = useRef({ turn: -1, timestamp: 0 });
 
     const handleError = (error) => {
@@ -601,6 +606,38 @@ function App() {
         else if (botSpeed === 2) setBotSpeed(10); // MAX Speed (Instant)
         else setBotSpeed(1); // Reset
     };
+
+    const sendMessage = async (e) => {
+        e.preventDefault();
+        if (!chatInput.trim() || !currentRoom) return;
+        const msg = {
+            id: Date.now(),
+            sender: nickname || 'Anonimo',
+            text: chatInput.trim(),
+            timestamp: Date.now(),
+            uid: user.uid
+        };
+        try {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), {
+                chatMessages: arrayUnion(msg)
+            });
+            setChatInput('');
+        } catch(e) { console.error(e); }
+    };
+
+    useEffect(() => {
+        if (currentRoom?.chatMessages && currentRoom.chatMessages.length > 0) {
+            setChatVisible(true);
+            if (chatTimerRef.current) clearTimeout(chatTimerRef.current);
+            chatTimerRef.current = setTimeout(() => {
+                setChatVisible(false);
+            }, 7000); 
+        }
+        return () => {
+            if (chatTimerRef.current) clearTimeout(chatTimerRef.current);
+        };
+    }, [currentRoom?.chatMessages]);
+
 
     const generateEliminationSpecials = () => {
         const max = 34;
@@ -665,7 +702,6 @@ function App() {
                 if (data.status === 'playing' && view !== 'game') setView('game');
                 if (data.status === 'waiting' && view !== 'lobby') setView('lobby');
 
-                // Check if Boss needs to select target
                 if (data.status === 'playing' && data.gameMode === 'raid_boss' && data.players[data.currentTurn].uid === user.uid && data.bossTargetUid === null && data.players[data.currentTurn].uid === data.hostId) {
                     setBossTargetSelection(true);
                 } else {
@@ -684,60 +720,91 @@ function App() {
         }
     }, [currentRoom?.lastAction]);
 
+    const toggleCustomSetting = (key) => {
+        setCustomSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
     const createRoom = async (mode) => {
         if (!nickname || !user) return;
         try {
             const code = Math.random().toString(36).substring(2, 7).toUpperCase();
             const charId = Math.floor(Math.random() * ROSTER.length);
             let extraData = {};
-            if (mode === 'infection') extraData.infectedNPC = { position: 0, lastMovedRound: 0 };
-            if (mode === 'gem_hunt') {
+            
+            // Custom Config Injection
+            if (mode === 'custom') {
+                extraData.customConfig = customSettings;
+                if (customSettings.mapType === 'elimination' || customSettings.elimination) {
+                    extraData.customSpecials = generateEliminationSpecials();
+                }
+            }
+
+            const activeInfection = mode === 'infection' || (mode === 'custom' && customSettings.infection);
+            const activeGemHunt = mode === 'gem_hunt';
+            const activeCoin = mode === 'coin_collector';
+            const activeLava = mode === 'lava' || (mode === 'custom' && customSettings.lava);
+            const activeElim = mode === 'elimination' || (mode === 'custom' && customSettings.elimination);
+            const activeBlackHole = mode === 'black_hole' || (mode === 'custom' && customSettings.blackHole);
+            const activeBoss = mode === 'raid_boss';
+            const activeRelay = mode === 'relay';
+            const activeTiles = mode === 'tiles';
+            const activeHunter = mode === 'hunter';
+            const activeBattleRoyale = mode === 'battle_royale';
+            const activeSniper = mode === 'sniper' || (mode === 'custom' && customSettings.sniper);
+            const activeGlitch = mode === 'glitch';
+            const activeBrawl = mode === 'brawl';
+            const activeTournament = mode === 'tournament';
+            const activeReverse = mode === 'reverse' || (mode === 'custom' && customSettings.reverse);
+            const activePressure = mode === 'pressure' || (mode === 'custom' && customSettings.pressure);
+
+            if (activeInfection) extraData.infectedNPC = { position: 0, lastMovedRound: 0 };
+            if (activeGemHunt) {
                 const gems = [];
                 while(gems.length < 3) { const r = Math.floor(Math.random() * 40) + 5; if(!gems.includes(r)) gems.push(r); }
                 extraData.gemLocations = gems;
             }
-            if (mode === 'coin_collector') {
+            if (activeCoin) {
                 extraData.coinLocations = generateCoins([], 5);
                 extraData.maxScore = 30;
             }
-            if (mode === 'lava') extraData.lavaTiles = [];
-            if (mode === 'elimination') extraData.customSpecials = generateEliminationSpecials();
-            if (mode === 'black_hole') extraData.blackHolePos = 0;
-            if (mode === 'raid_boss') {
+            if (activeLava) extraData.lavaTiles = [];
+            if (activeElim && !extraData.customSpecials) extraData.customSpecials = generateEliminationSpecials();
+            if (activeBlackHole) extraData.blackHolePos = 0;
+            if (activeBoss) {
                 extraData.bossHp = 50;
                 extraData.bossTargetUid = null;
             }
-            if (mode === 'relay') {
+            if (activeRelay) {
                 extraData.teamBotModes = { 0: 'auto', 1: 'auto', 2: 'auto', 3: 'auto' };
             }
-            if (mode === 'tiles') {
+            if (activeTiles) {
                 extraData.tileOwners = {}; 
                 extraData.maxRounds = 10;
             }
-            if (mode === 'hunter') {
-                extraData.guardUid = user.uid; // Host is Guard by default
+            if (activeHunter) {
+                extraData.guardUid = user.uid;
             }
-            if (mode === 'battle_royale') {
+            if (activeBattleRoyale) {
                 extraData.qualifyLimit = 16;
                 extraData.battleRoundIndex = 0;
-                extraData.battleRoundConfig = [16, 8, 4, 2, 1]; // Default configuration
+                extraData.battleRoundConfig = [16, 8, 4, 2, 1];
             }
-            if (mode === 'sniper') {
+            if (activeSniper) {
                 extraData.sniperTargets = [];
                 extraData.sniperUid = user.uid;
             }
-            if (mode === 'glitch') {
+            if (activeGlitch) {
                 extraData.activeGlitch = null;
-                extraData.lavaTiles = []; // Initialize for random_lava
-                extraData.blackHolePos = 0; // Initialize for black_hole
+                extraData.lavaTiles = []; 
+                extraData.blackHolePos = 0; 
             }
-            if (mode === 'brawl') {
-                extraData.mapSize = 8; // 8x8
+            if (activeBrawl) {
+                extraData.mapSize = 8;
                 extraData.voidTiles = [];
                 extraData.warningTiles = [];
                 extraData.lavaTiles = [];
             }
-            if (mode === 'tournament') {
+            if (activeTournament) {
                 extraData.maxPlayers = 8;
                 extraData.tournamentTotalRounds = tournamentRounds;
                 extraData.tournamentRoundsConfig = [2, 3, 4];
@@ -747,34 +814,34 @@ function App() {
                 uid: user.uid, name: nickname, characterId: charId, position: 0, 
                 skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: false, 
                 pendingTarget: null, activeCurse: false, pawnIdx: 0,
-                paintColor: mode === 'tiles' ? selectedPaintColor : null,
+                paintColor: activeTiles ? selectedPaintColor : null,
                 remainingMoves: 0,
-                lives: 1, // Default lives for everyone
+                lives: 1, 
                 extraDice: false,
-                score: 0, // Tournament Score
-                laps: 1 // For Pressure Mode
+                score: 0, 
+                laps: 1 
             };
 
-            if (mode === 'gem_hunt') playerObj.position = Math.random() > 0.5 ? 0 : 50;
-            if (mode === 'relay') playerObj.teamId = 0;
-            if (mode === 'gem_hunt') playerObj.collectedGems = [];
-            if (mode === 'coin_collector') playerObj.score = 0;
-            if (mode === 'lava') playerObj.lives = 2;
-            if (mode === 'raid_boss') playerObj.lives = 999; 
-            if (mode === 'tiles') playerObj.position = 0; 
-            if (mode === 'reverse') playerObj.position = 60;
-            if (mode === 'coin_collector') playerObj.position = 0;
-            if (mode === 'sniper') {
-                playerObj.lives = 999; // Sniper is immortal
-                playerObj.position = 60; // Sniper at end
+            if (activeGemHunt) playerObj.position = Math.random() > 0.5 ? 0 : 50;
+            if (activeRelay) playerObj.teamId = 0;
+            if (activeGemHunt) playerObj.collectedGems = [];
+            if (activeCoin) playerObj.score = 0;
+            if (activeLava) playerObj.lives = 2;
+            if (activeBoss) playerObj.lives = 999; 
+            if (activeTiles) playerObj.position = 0; 
+            if (activeReverse) playerObj.position = 65;
+            if (activeCoin) playerObj.position = 0;
+            if (activeSniper) {
+                playerObj.lives = 3; 
+                playerObj.position = activeReverse ? 0 : 65; // Sniper starts at end usually, or start
+                if (user.uid === extraData.sniperUid) playerObj.position = 65; // Force Sniper position
             }
-            if (mode === 'brawl') {
-                playerObj.lives = 3;
-            }
+            if (activeBrawl) playerObj.lives = 3;
 
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', code), {
-                code, hostId: user.uid, gameMode: mode, teamConfig: mode === 'relay' ? relayConfig : null, status: 'waiting', currentTurn: 0, round: 1, ...extraData, duelState: null,
+                code, hostId: user.uid, gameMode: mode, teamConfig: activeRelay ? relayConfig : null, status: 'waiting', currentTurn: 0, round: 1, ...extraData, duelState: null,
                 players: [playerObj],
+                chatMessages: [],
                 lastAction: "Stanza Creata"
             });
             setRoomCode(code);
@@ -801,35 +868,50 @@ function App() {
             if (data.players.some(p => p.uid === user.uid)) { setView('lobby'); return; }
             const available = ROSTER.map(c=>c.id).filter(id => !data.players.some(p=>p.characterId === id));
             const charId = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : 0;
+            
+            // Checks for features
+            const isCustom = data.gameMode === 'custom';
+            const conf = isCustom ? data.customConfig : {};
+            const activeRelay = data.gameMode === 'relay';
+            const activeGemHunt = data.gameMode === 'gem_hunt';
+            const activeReverse = data.gameMode === 'reverse' || conf.reverse;
+            const activeHunter = data.gameMode === 'hunter';
+            const activeTiles = data.gameMode === 'tiles';
+            const activeCoin = data.gameMode === 'coin_collector';
+            const activeLava = data.gameMode === 'lava' || conf.lava;
+            const activeBoss = data.gameMode === 'raid_boss';
+            const activeSniper = data.gameMode === 'sniper' || conf.sniper;
+            const activeBrawl = data.gameMode === 'brawl';
+
             let bestTeam = 0;
-            if (data.gameMode === 'relay') {
+            if (activeRelay) {
                 const counts = Array(data.teamConfig.teams).fill(0);
                 data.players.forEach(p => counts[p.teamId]++);
                 bestTeam = counts.indexOf(Math.min(...counts));
             }
             let startPos = 0;
-            if (data.gameMode === 'gem_hunt') startPos = Math.random() > 0.5 ? 0 : 50;
-            if (data.gameMode === 'reverse') startPos = 60;
-            if (data.gameMode === 'hunter') startPos = 20;
+            if (activeGemHunt) startPos = Math.random() > 0.5 ? 0 : 50;
+            if (activeReverse) startPos = 65;
+            if (activeHunter) startPos = 20;
 
             const playerObj = { 
                 uid: user.uid, name: nickname, characterId: charId, position: startPos, 
                 skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: false, 
                 pendingTarget: null, activeCurse: false, pawnIdx: 0,
-                paintColor: data.gameMode === 'tiles' ? selectedPaintColor : null,
+                paintColor: activeTiles ? selectedPaintColor : null,
                 remainingMoves: 0,
-                lives: 1, // Default lives
+                lives: 1, 
                 extraDice: false,
                 score: 0,
                 laps: 1
             };
-            if (data.gameMode === 'relay') playerObj.teamId = bestTeam;
-            if (data.gameMode === 'gem_hunt') playerObj.collectedGems = [];
-            if (data.gameMode === 'coin_collector') playerObj.score = 0;
-            if (data.gameMode === 'lava') playerObj.lives = 2;
-            if (data.gameMode === 'raid_boss') playerObj.lives = 3; 
-            if (data.gameMode === 'sniper') playerObj.lives = 3;
-            if (data.gameMode === 'brawl') playerObj.lives = 3;
+            if (activeRelay) playerObj.teamId = bestTeam;
+            if (activeGemHunt) playerObj.collectedGems = [];
+            if (activeCoin) playerObj.score = 0;
+            if (activeLava) playerObj.lives = 2;
+            if (activeBoss) playerObj.lives = 3; 
+            if (activeSniper) playerObj.lives = 3;
+            if (activeBrawl) playerObj.lives = 3;
 
             await updateDoc(ref, { players: arrayUnion(playerObj) });
             setView('lobby');
@@ -845,6 +927,9 @@ function App() {
         try {
             let gamePlayers = [...currentRoom.players];
             let updates = { status: 'playing', lastAction: "Partita iniziata!", currentTurn: 0 };
+
+            const isCustom = currentRoom.gameMode === 'custom';
+            const conf = isCustom ? currentRoom.customConfig : {};
 
             if (currentRoom.gameMode === 'relay') {
                 const expandedPlayers = [];
@@ -875,16 +960,19 @@ function App() {
                     ...p, id: p.uid, position: startPositions[i % startPositions.length] || 0
                 }));
                 if (currentRoom.gameMode === 'tiles') updates.maxRounds = turnLimit; 
-            } else if (currentRoom.gameMode === 'reverse') {
-                gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, position: 60})); 
+            } else if (currentRoom.gameMode === 'reverse' || conf.reverse) {
+                gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, position: 65})); 
             } else if (currentRoom.gameMode === 'hunter') {
                 gamePlayers = gamePlayers.map(p => ({ ...p, id: p.uid, position: p.uid === currentRoom.guardUid ? 0 : 20 }));
             } else if (currentRoom.gameMode === 'battle_royale') {
                 const config = currentRoom.battleRoundConfig || [16, 8, 4, 2, 1];
                 updates.qualifyLimit = config.length > 0 ? config[0] : 1;
                 gamePlayers = gamePlayers.map(p => ({...p, id: p.uid}));
-            } else if (currentRoom.gameMode === 'sniper') {
-                gamePlayers = gamePlayers.map(p => ({ ...p, id: p.uid, position: p.uid === currentRoom.sniperUid ? 60 : 0 }));
+            } else if (currentRoom.gameMode === 'sniper' || conf.sniper) {
+                // In Custom Sniper, if no sniperUid set, host is sniper
+                if (isCustom && !currentRoom.sniperUid) { updates.sniperUid = currentRoom.hostId; }
+                const actualSniper = currentRoom.sniperUid || (isCustom ? currentRoom.hostId : null);
+                gamePlayers = gamePlayers.map(p => ({ ...p, id: p.uid, position: p.uid === actualSniper ? 65 : 0 }));
             } else if (currentRoom.gameMode === 'brawl') {
                 const positions = [];
                 while(positions.length < gamePlayers.length) {
@@ -896,8 +984,7 @@ function App() {
                 updates.tournamentTotalRounds = tournamentRounds;
                 gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, score: 0}));
             } else { 
-                // Ensure pressure mode laps are set (if not already)
-                if (currentRoom.gameMode === 'pressure') {
+                if (currentRoom.gameMode === 'pressure' || conf.pressure) {
                     gamePlayers = gamePlayers.map(p => ({...p, id: p.uid, laps: 1}));
                 } else {
                     gamePlayers = gamePlayers.map(p => ({...p, id: p.uid})); 
@@ -936,31 +1023,45 @@ function App() {
             const availableChars = ROSTER.map(c => c.id).filter(id => !currentRoom.players.some(p => p.characterId === id));
             const charId = availableChars.length > 0 ? availableChars[Math.floor(Math.random() * availableChars.length)] : 0;
             const botId = `bot_${Date.now()}`;
+            
+            const isCustom = currentRoom.gameMode === 'custom';
+            const conf = isCustom ? currentRoom.customConfig : {};
+            const activeGemHunt = currentRoom.gameMode === 'gem_hunt';
+            const activeReverse = currentRoom.gameMode === 'reverse' || conf.reverse;
+            const activeHunter = currentRoom.gameMode === 'hunter';
+            const activeRelay = currentRoom.gameMode === 'relay';
+            const activeTiles = currentRoom.gameMode === 'tiles';
+            const activeCoin = currentRoom.gameMode === 'coin_collector';
+            const activeLava = currentRoom.gameMode === 'lava' || conf.lava;
+            const activeBoss = currentRoom.gameMode === 'raid_boss';
+            const activeSniper = currentRoom.gameMode === 'sniper' || conf.sniper;
+            const activeBrawl = currentRoom.gameMode === 'brawl';
+
             let startPos = 0;
-            if (currentRoom.gameMode === 'gem_hunt') startPos = (Math.random() > 0.5 ? 0 : 50);
-            if (currentRoom.gameMode === 'reverse') startPos = 60;
-            if (currentRoom.gameMode === 'hunter') startPos = 20;
+            if (activeGemHunt) startPos = (Math.random() > 0.5 ? 0 : 50);
+            if (activeReverse) startPos = 65;
+            if (activeHunter) startPos = 20;
 
             let bestTeam = 0;
-            if (currentRoom.gameMode === 'relay') {
+            if (activeRelay) {
                 const counts = Array(currentRoom.teamConfig.teams).fill(0);
                 currentRoom.players.forEach(p => counts[p.teamId]++);
                 bestTeam = counts.indexOf(Math.min(...counts));
             }
             const charName = ROSTER[charId].name; 
             const botPlayer = {
-                uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: startPos, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: currentRoom.gameMode === 'tiles' ? PAINT_COLORS[Math.floor(Math.random() * PAINT_COLORS.length)] : null, remainingMoves: 0,
-                lives: 1, // Default lives
+                uid: botId, id: botId, name: `Bot ${charName}`, characterId: charId, position: startPos, skipTurns: 0, finished: false, isDead: false, rank: 0, isBot: true, pendingTarget: null, activeCurse: false, pawnIdx: 0, paintColor: activeTiles ? PAINT_COLORS[Math.floor(Math.random() * PAINT_COLORS.length)] : null, remainingMoves: 0,
+                lives: 1, 
                 extraDice: false,
                 score: 0,
                 laps: 1,
-                ...(currentRoom.gameMode === 'relay' ? { teamId: bestTeam } : {}),
-                ...(currentRoom.gameMode === 'gem_hunt' ? { collectedGems: [] } : {}),
-                ...(currentRoom.gameMode === 'coin_collector' ? { score: 0 } : {}),
-                ...(currentRoom.gameMode === 'lava' ? { lives: 2 } : {}),
-                ...(currentRoom.gameMode === 'raid_boss' ? { lives: 3 } : {}),
-                ...(currentRoom.gameMode === 'sniper' ? { lives: 3 } : {}),
-                ...(currentRoom.gameMode === 'brawl' ? { lives: 3 } : {})
+                ...(activeRelay ? { teamId: bestTeam } : {}),
+                ...(activeGemHunt ? { collectedGems: [] } : {}),
+                ...(activeCoin ? { score: 0 } : {}),
+                ...(activeLava ? { lives: 2 } : {}),
+                ...(activeBoss ? { lives: 3 } : {}),
+                ...(activeSniper ? { lives: 3 } : {}),
+                ...(activeBrawl ? { lives: 3 } : {})
             };
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: arrayUnion(botPlayer) });
         } catch (e) { handleError(e); }
@@ -1067,7 +1168,6 @@ function App() {
 
             tempPlayers[currentPlayerIdx].position = targetPos;
 
-            // FIX: Lava Check for Mover
             if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(targetPos)) {
                 if (tempPlayers[currentPlayerIdx].lives !== undefined) {
                     tempPlayers[currentPlayerIdx].lives -= 1;
@@ -1143,7 +1243,6 @@ function App() {
         }
     };
 
-    // FIXED EXECUTE MOVE WITH LOOPING SPECIALS
     const executeMove = async (playerId, targetPos) => {
         if (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') return;
         if (isMoving) return;
@@ -1156,6 +1255,17 @@ function App() {
             if (!snap.exists()) return;
             const freshRoom = snap.data();
 
+            const isCustom = freshRoom.gameMode === 'custom';
+            const conf = isCustom ? freshRoom.customConfig : {};
+            const activePressure = freshRoom.gameMode === 'pressure' || conf.pressure;
+            const activeLava = freshRoom.gameMode === 'lava' || conf.lava;
+            const activeElim = freshRoom.gameMode === 'elimination' || conf.elimination;
+            const activePunitive = freshRoom.gameMode === 'classic_punitive' || conf.punitive;
+            const activeReverse = freshRoom.gameMode === 'reverse' || conf.reverse;
+            const activeBlackHole = freshRoom.gameMode === 'black_hole' || conf.blackHole;
+            const activeInfection = freshRoom.gameMode === 'infection' || conf.infection;
+            const activeSniper = freshRoom.gameMode === 'sniper' || conf.sniper;
+            
             const currentPlayerIdx = freshRoom.currentTurn;
             const player = freshRoom.players[currentPlayerIdx];
 
@@ -1165,21 +1275,20 @@ function App() {
             }
 
             const currentPos = player.position;
-            // Determine Map Config
             let config = CLASSIC_MAP;
-            if (freshRoom.gameMode === 'elimination') config = ELIM_MAP;
-            if (freshRoom.gameMode === 'gem_hunt') config = GEM_MAP;
-            if (freshRoom.gameMode === 'reverse') config = REVERSE_MAP;
-            if (freshRoom.gameMode === 'battle_royale') config = BATTLE_ROYALE_MAP;
-            if (freshRoom.gameMode === 'hunter') config = HUNTER_MAP;
+            if (freshRoom.gameMode === 'elimination' || (isCustom && conf.mapType === 'elimination')) config = ELIM_MAP;
+            else if (freshRoom.gameMode === 'gem_hunt') config = GEM_MAP;
+            else if (freshRoom.gameMode === 'reverse' || (isCustom && conf.reverse)) config = REVERSE_MAP;
+            else if (freshRoom.gameMode === 'battle_royale') config = BATTLE_ROYALE_MAP;
+            else if (freshRoom.gameMode === 'hunter') config = HUNTER_MAP;
 
             let effectiveSpecials = config.specials;
-            if (freshRoom.gameMode === 'elimination' && freshRoom.customSpecials) effectiveSpecials = freshRoom.customSpecials;
+            if (activeElim && freshRoom.customSpecials) effectiveSpecials = freshRoom.customSpecials;
 
             const isBoss = freshRoom.gameMode === 'raid_boss' && player.uid === freshRoom.hostId;
             const isGuard = freshRoom.gameMode === 'hunter' && player.uid === freshRoom.guardUid;
-            const isSniper = freshRoom.gameMode === 'sniper' && player.uid === freshRoom.sniperUid;
-            const isReverse = freshRoom.gameMode === 'reverse';
+            const isSniper = activeSniper && player.uid === freshRoom.sniperUid;
+            const isReverse = activeReverse;
 
             const steps = [];
             const direction = targetPos >= currentPos ? 1 : -1;
@@ -1192,13 +1301,10 @@ function App() {
             let tempBossHp = freshRoom.bossHp;
             let collisionLog = [];
 
-            // Animation Phase for Initial Move
             for (let stepPos of steps) {
-                // Handle looping for steps animation if in pressure mode
                 let visualStepPos = stepPos;
-                if (freshRoom.gameMode === 'pressure' && stepPos > 60) {
-                     // Just cap at 60 for animation so it doesn't break rendering, real wrap happens at end
-                     visualStepPos = 60;
+                if (activePressure && stepPos > 65) {
+                     visualStepPos = 65;
                 }
 
                 tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: visualStepPos };
@@ -1229,39 +1335,47 @@ function App() {
             if (tempPlayers[currentPlayerIdx].isDead) { setIsMoving(false); return; }
 
             let finalPos = targetPos;
+            let pressureMsg = "";
             
-            // PRESSURE MODE WRAP LOGIC
-            if (freshRoom.gameMode === 'pressure' && finalPos >= 60) {
-                 const lapsGained = Math.floor(finalPos / 60);
-                 finalPos = finalPos % 60;
+            if (activePressure && finalPos >= 65) {
+                 const lapsGained = Math.floor(finalPos / 65);
+                 finalPos = finalPos % 65;
                  tempPlayers[currentPlayerIdx].laps = (tempPlayers[currentPlayerIdx].laps || 1) + lapsGained;
-                 log += ` GIRO COMPLETATO! (Giro ${tempPlayers[currentPlayerIdx].laps})`;
-                 playSound('win'); // Small win sound for lap
+                 pressureMsg = ` GIRO COMPLETATO! (Giro ${tempPlayers[currentPlayerIdx].laps})`;
+                 playSound('win');
             }
 
-            let log = `${player.name} è alla ${finalPos}.`;
+            let log = `${player.name} è alla ${finalPos}.${pressureMsg}`;
             if (collisionLog.length > 0) log += " " + collisionLog.join(" ");
 
-            // CHECK SPECIALS WITH CHAINING LOOP
+            // CHECK LAVA ON INITIAL LANDING (NO SPECIAL REQUIRED)
+            if (!tempPlayers[currentPlayerIdx].isDead && (activeLava || freshRoom.gameMode === 'glitch' || freshRoom.activeGlitch === 'random_lava' || freshRoom.lavaTiles?.length > 0) && freshRoom.lavaTiles && freshRoom.lavaTiles.includes(finalPos)) {
+                 if (tempPlayers[currentPlayerIdx].lives !== undefined) { 
+                     tempPlayers[currentPlayerIdx].lives -= 1; 
+                     log += " 🔥 LAVA!"; 
+                     playSound('fire'); 
+                     if (tempPlayers[currentPlayerIdx].lives <= 0) { 
+                         tempPlayers[currentPlayerIdx].isDead = true; 
+                         tempPlayers[currentPlayerIdx].finished = true; 
+                         log += " ELIMINATO!"; 
+                         playSound('skull'); 
+                     } 
+                 }
+            }
+
             let activeSpecial = effectiveSpecials[finalPos];
             let specialIterations = 0;
             let extraTurns = 0;
 
-            // Loop changed to limit iteration to 1 to prevent chaining effects as requested ("Solo una volta")
             while (activeSpecial && specialIterations < 1 && !tempPlayers[currentPlayerIdx].isDead) {
                 specialIterations++;
                 log += ` ${activeSpecial.name}!`;
-
-                // Handle Lava in loop if needed
-                if ((freshRoom.gameMode === 'lava' || freshRoom.gameMode === 'glitch' || freshRoom.activeGlitch === 'random_lava' || freshRoom.lavaTiles?.length > 0) && freshRoom.lavaTiles && freshRoom.lavaTiles.includes(finalPos)) {
-                     if (tempPlayers[currentPlayerIdx].lives !== undefined) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🔥 LAVA!"; playSound('fire'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " ELIMINATO!"; playSound('skull'); break; } }
-                }
 
                 if (activeSpecial.type === 'BOOST') { 
                     await sleep(500/botSpeed); 
                     finalPos += activeSpecial.val; 
                     if (finalPos < 0) finalPos = 0; 
-                    if (finalPos > config.max && freshRoom.gameMode !== 'pressure') finalPos = config.max; // Don't cap pressure
+                    if (finalPos > config.max && !activePressure) finalPos = config.max; 
                     tempPlayers[currentPlayerIdx].position = finalPos; 
                     playSound('step'); 
                 }
@@ -1273,16 +1387,16 @@ function App() {
                 }
                 else if (activeSpecial.type === 'DOUBLE') { 
                     await sleep(800/botSpeed); 
-                    const moveAmt = dist > 0 ? dist : (lastRoll || 1); // Fallback if dist is 0
+                    const moveAmt = dist > 0 ? dist : (lastRoll || 1); 
                     finalPos = finalPos + (moveAmt * direction); 
-                    if (finalPos > config.max && freshRoom.gameMode !== 'pressure') finalPos = config.max; 
+                    if (finalPos > config.max && !activePressure) finalPos = config.max; 
                     if (finalPos < 0) finalPos = 0; 
                     tempPlayers[currentPlayerIdx].position = finalPos; 
                     playSound('step'); 
                 }
                 else if (activeSpecial.type === 'TAIL') { 
                     await sleep(800/botSpeed); 
-                    const sortedByPos = [...tempPlayers].filter(p => !p.isDead && !p.finished && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); 
+                    const sortedByPos = [...tempPlayers].filter(p => !p.isDead && !p.finished && (!activeSniper || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); 
                     const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); 
                     if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } 
                     tempPlayers[currentPlayerIdx].position = finalPos; 
@@ -1290,7 +1404,7 @@ function App() {
                 }
                 else if (activeSpecial.type === 'FRONT') { 
                     await sleep(800/botSpeed); 
-                    const sortedBehind = [...tempPlayers].filter(p => !p.isDead && !p.finished && p.position < finalPos && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); 
+                    const sortedBehind = [...tempPlayers].filter(p => !p.isDead && !p.finished && p.position < finalPos && (!activeSniper || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); 
                     if (sortedBehind.length > 0) { const targetPlayer = sortedBehind[0]; finalPos = Math.min(config.max, targetPlayer.position + 1); } 
                     tempPlayers[currentPlayerIdx].position = finalPos; 
                     playSound('step'); 
@@ -1299,20 +1413,40 @@ function App() {
                     if (freshRoom.gameMode === 'hunter' && isGuard) { log += " (Immune)"; break; } 
                     else { 
                         await sleep(800/botSpeed); 
-                        const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (freshRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)); 
-                        if (others.length > 0) { const targetP = others[Math.floor(Math.random() * others.length)]; finalPos = targetP.position; tempPlayers[currentPlayerIdx].position = finalPos; playSound('teleport'); } 
+                        const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (freshRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (!activeSniper || p.uid !== freshRoom.sniperUid)); 
+                        if (others.length > 0) { 
+                            const targetP = others[Math.floor(Math.random() * others.length)]; 
+                            finalPos = targetP.position; 
+                            tempPlayers[currentPlayerIdx].position = finalPos; 
+                            
+                            // FIX: Copia Laps in Pressure mode
+                            if (activePressure) {
+                                tempPlayers[currentPlayerIdx].laps = targetP.laps || 1;
+                            }
+
+                            playSound('teleport'); 
+                        } 
                     } 
                 }
                 else if (activeSpecial.type === 'SWITCH') { 
                     if (freshRoom.gameMode === 'hunter' && isGuard) { log += " (Immune)"; break; } 
                     else { 
                         await sleep(800/botSpeed); 
-                        const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (freshRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (freshRoom.gameMode !== 'sniper' || p.uid !== freshRoom.sniperUid)); 
+                        const others = tempPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (freshRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (!activeSniper || p.uid !== freshRoom.sniperUid)); 
                         if (others.length > 0) { 
                             const targetP = others[Math.floor(Math.random() * others.length)]; 
                             const targetIndex = tempPlayers.findIndex(p => p.id === targetP.id); 
                             const myPos = finalPos; 
                             const theirPos = targetP.position; 
+
+                            // FIX: Scambia Laps in Pressure mode
+                            if (activePressure) {
+                                const myLaps = tempPlayers[currentPlayerIdx].laps || 1;
+                                const theirLaps = tempPlayers[targetIndex].laps || 1;
+                                tempPlayers[currentPlayerIdx].laps = theirLaps;
+                                tempPlayers[targetIndex].laps = myLaps;
+                            }
+
                             tempPlayers[currentPlayerIdx].position = theirPos; 
                             tempPlayers[targetIndex].position = myPos; 
                             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers }); 
@@ -1322,13 +1456,10 @@ function App() {
                     } 
                 }
                 else if (activeSpecial.type === 'DECISION') {
-                     // Decision stops the chain
                      if (player.isBot) { const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)]; log += ` Scelta Bot: ${picked.name}!`; if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; } } 
                      else { await sleep(500/botSpeed); const shuffled = [...DECISION_POOL].sort(() => 0.5 - Math.random()); setDecisionOptions(shuffled.slice(0, 3)); setDecisionMode(true); setTargetSelectionMode(null); tempPlayers[currentPlayerIdx].position = finalPos; tempPlayers[currentPlayerIdx].pendingTarget = null; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` }); setIsMoving(false); return; }
-                     // If bot chose turbo, loop might continue next iteration
                 }
                 else if (activeSpecial.type === 'CHALLENGE') {
-                    // Challenge stops the chain
                     await sleep(500/botSpeed);
                     tempPlayers[currentPlayerIdx].position = finalPos;
                     tempPlayers[currentPlayerIdx].pendingTarget = null;
@@ -1344,47 +1475,53 @@ function App() {
                 else if (activeSpecial.type === 'EXTRA_DICE') { tempPlayers[currentPlayerIdx].extraDice = true; playSound('powerup'); }
                 if (activeSpecial.type === 'WAIT') extraTurns = activeSpecial.turns;
 
-                // Re-evaluate Active Special for next loop iteration
-                // Handle wrap for special detection if needed, or stick to 0-60 map
-                if (finalPos >= 60 && freshRoom.gameMode === 'pressure') {
-                     // Check if landed on special after wrap
-                     const wrappedPos = finalPos % 60;
-                     // We need to commit the wrap before checking special for correctness
+                if (finalPos >= 65 && activePressure) {
+                     const wrappedPos = finalPos % 65;
                      finalPos = wrappedPos;
                      tempPlayers[currentPlayerIdx].laps = (tempPlayers[currentPlayerIdx].laps || 1) + 1;
-                     // Continue loop with new pos
+                }
+                
+                // CHECK LAVA AGAIN AFTER SPECIAL MOVE
+                if (!tempPlayers[currentPlayerIdx].isDead && (activeLava || freshRoom.gameMode === 'glitch' || freshRoom.activeGlitch === 'random_lava' || freshRoom.lavaTiles?.length > 0) && freshRoom.lavaTiles && freshRoom.lavaTiles.includes(finalPos)) {
+                     if (tempPlayers[currentPlayerIdx].lives !== undefined) { 
+                         tempPlayers[currentPlayerIdx].lives -= 1; 
+                         log += " 🔥 LAVA!"; 
+                         playSound('fire'); 
+                         if (tempPlayers[currentPlayerIdx].lives <= 0) { 
+                             tempPlayers[currentPlayerIdx].isDead = true; 
+                             tempPlayers[currentPlayerIdx].finished = true; 
+                             log += " ELIMINATO!"; 
+                             playSound('skull');
+                             break; // Exit loop if dead
+                         } 
+                     }
                 }
 
                 activeSpecial = effectiveSpecials[finalPos];
                 
-                // Update Firebase slightly to show intermediate steps if speed allows
                 if (botSpeed <= 2) {
                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers });
                 }
             }
-            // End of Special Loop
 
-            if (freshRoom.gameMode === 'sniper' && freshRoom.sniperTargets && freshRoom.sniperTargets.includes(finalPos)) { if (!isSniper) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🎯 COLPITO DAL CECCHINO! -1 VITA!"; playSound('sniper'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; log += " ELIMINATO!"; playSound('skull'); } } }
-            if (finalPos !== targetPos && !tempPlayers[currentPlayerIdx].isDead && freshRoom.gameMode === 'lava' && freshRoom.lavaTiles && freshRoom.lavaTiles.includes(finalPos)) { if (tempPlayers[currentPlayerIdx].lives !== undefined) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🔥 LAVA! -1 VITA!"; playSound('fire'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " ELIMINATO!"; playSound('skull'); } } }
-            if (freshRoom.gameMode === 'black_hole' && finalPos <= freshRoom.blackHolePos) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " RISUCCHIATO DAL BUCO NERO!"; playSound('suck'); }
-            if (freshRoom.gameMode === 'classic_punitive' || freshRoom.activeGlitch === 'punitive_round') { const victims = tempPlayers.filter(p => p.id !== player.id && p.position === finalPos && !p.finished && !p.isDead); if (victims.length > 0) { victims.forEach(v => { const vIndex = tempPlayers.findIndex(tp => tp.id === v.id); tempPlayers[vIndex].position = Math.max(0, v.position - 3); }); playSound('punch'); log += " PUNITO!"; } }
+            if (activeSniper && freshRoom.sniperTargets && freshRoom.sniperTargets.includes(finalPos)) { if (!isSniper) { tempPlayers[currentPlayerIdx].lives -= 1; log += " 🎯 COLPITO DAL CECCHINO! -1 VITA!"; playSound('sniper'); if (tempPlayers[currentPlayerIdx].lives <= 0) { tempPlayers[currentPlayerIdx].isDead = true; log += " ELIMINATO!"; playSound('skull'); } } }
+            if (activeBlackHole && finalPos <= freshRoom.blackHolePos) { tempPlayers[currentPlayerIdx].isDead = true; tempPlayers[currentPlayerIdx].finished = true; log += " RISUCCHIATO DAL BUCO NERO!"; playSound('suck'); }
+            if (activePunitive || freshRoom.activeGlitch === 'punitive_round') { const victims = tempPlayers.filter(p => p.id !== player.id && p.position === finalPos && !p.finished && !p.isDead); if (victims.length > 0) { victims.forEach(v => { const vIndex = tempPlayers.findIndex(tp => tp.id === v.id); tempPlayers[vIndex].position = Math.max(0, v.position - 3); }); playSound('punch'); log += " PUNITO!"; } }
 
             tempPlayers[currentPlayerIdx] = { ...tempPlayers[currentPlayerIdx], position: finalPos, skipTurns: extraTurns, pendingTarget: null };
             let updates = { players: tempPlayers, lastAction: log };
             if (freshRoom.gameMode === 'gem_hunt') updates.gemLocations = tempGemLocations;
             if (freshRoom.gameMode === 'raid_boss') updates.bossHp = tempBossHp;
 
-            // ... (rest of logic: win conditions, tournament, next turn) ...
             let justFinished = false;
             let hasWon = false;
             if (freshRoom.gameMode === 'gem_hunt' && tempPlayers[currentPlayerIdx].collectedGems.length >= 5) { hasWon = true; }
-            else if (freshRoom.gameMode === 'reverse') { if (finalPos <= 0 && !tempPlayers[currentPlayerIdx].isDead) hasWon = true; }
+            else if (activeReverse) { if (finalPos <= 0 && !tempPlayers[currentPlayerIdx].isDead) hasWon = true; }
             else if (finalPos === config.max && !tempPlayers[currentPlayerIdx].isDead) { 
                 if (freshRoom.gameMode === 'raid_boss' && isBoss) { updates.status = 'finished'; updates.winner = "IL BOSS HA VINTO!"; playSound('skull'); }
                 else if (freshRoom.gameMode === 'hunter' && isGuard) { tempPlayers[currentPlayerIdx].position = 0; updates.lastAction = (updates.lastAction || "") + " FINE PATTUGLIA! SI RICOMINCIA!"; playSound('teleport'); }
-                else if (freshRoom.gameMode === 'sniper' && isSniper) { }
-                else if (freshRoom.gameMode === 'pressure') {
-                    // Logic already handled in loop (wrap around), no win here
+                else if (activeSniper && isSniper) { }
+                else if (activePressure) {
                 }
                 else { hasWon = true; }
             }
@@ -1403,20 +1540,17 @@ function App() {
 
             if (justFinished) { tempPlayers[currentPlayerIdx].rank = finishedCount; log += " ARRIVATO!"; }
 
-            // TOURNAMENT MODE LOGIC
             if (freshRoom.gameMode === 'tournament' && justFinished) {
                 const pointsMap = TOURNAMENT_POINTS;
                 const points = pointsMap[finishedCount - 1] || 1;
                 tempPlayers[currentPlayerIdx].score = (tempPlayers[currentPlayerIdx].score || 0) + points;
                 log += ` +${points} PUNTI!`;
 
-                // Check if round finished
                 const activeAlive = tempPlayers.filter(p => !p.isDead);
                 const allFinished = activeAlive.every(p => p.finished);
 
                 if (allFinished) {
                     if (freshRoom.round < freshRoom.tournamentTotalRounds) {
-                        // Next Round
                         tempPlayers.forEach(p => { 
                             if (!p.isDead) {
                                 p.position = 0; 
@@ -1432,7 +1566,6 @@ function App() {
                         setIsMoving(false);
                         return;
                     } else {
-                        // Tournament Over
                         const winner = [...tempPlayers].sort((a,b) => (b.score || 0) - (a.score || 0))[0];
                         updates.status = 'finished';
                         updates.winner = `${winner.name} VINCE CON ${winner.score} PUNTI!`;
@@ -1455,45 +1588,42 @@ function App() {
             } else if (freshRoom.gameMode === 'battle_royale') { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
             else if (freshRoom.gameMode === 'relay') { const teams = freshRoom.teamConfig.teams; const finishedTeams = []; for(let t=0; t<teams; t++) { if (checkTeamWin(tempPlayers, t)) finishedTeams.push(t); } if (finishedTeams.length >= teams - 1 && teams > 1) { updates.status = 'finished'; updates.winner = "GARA COMPLETATA"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; } } 
             else if (freshRoom.gameMode === 'hunter') { const thieves = tempPlayers.filter(p => p.uid !== freshRoom.guardUid); const livingThieves = thieves.filter(p => !p.isDead); if (livingThieves.length === 0) { updates.status = 'finished'; updates.winner = "GUARDIA VINCE (Tutti arrestati)!"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; } } 
-            else if (freshRoom.gameMode === 'elimination') {
+            else if (activeElim) {
                 const living = tempPlayers.filter(p => !p.isDead); const finishedLiving = living.filter(p => p.finished);
                 if (finishedLiving.length === living.length - 1 && living.length > 1) { const loser = living.find(p => !p.finished); const loserIndex = tempPlayers.findIndex(p => p.id === loser.id); tempPlayers[loserIndex].isDead = true; tempPlayers.forEach(p => { if (!p.isDead) { p.position = 0; p.finished = false; } }); updates.players = tempPlayers; updates.round = freshRoom.round + 1; updates.customSpecials = generateEliminationSpecials(); updates.currentTurn = 0; } 
                 else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); updates.currentTurn = nextTurn; }
             } else if (freshRoom.gameMode === 'raid_boss') {
                 const livingRaiders = tempPlayers.filter(p => p.uid !== freshRoom.hostId && !p.isDead); if (livingRaiders.length === 0) { updates.status = 'finished'; updates.winner = "BOSS HA VINTO (TUTTI MORTI)!"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); if (nextTurn <= currentPlayerIdx) { updates.round = (freshRoom.round || 1) + 1; updates.bossTargetUid = null; } updates.currentTurn = nextTurn; }
-            } else if (freshRoom.gameMode === 'sniper') {
+            } else if (activeSniper) {
                 const livingRunners = tempPlayers.filter(p => p.uid !== freshRoom.sniperUid && !p.isDead); if (livingRunners.length === 0) { updates.status = 'finished'; updates.winner = "CECCHINO HA VINTO (TUTTI MORTI)!"; } else if (finishedCount > 0) { updates.status = 'finished'; updates.winner = "I CORRIDORI VINCONO!"; } else { const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx); if (nextTurn <= currentPlayerIdx) { updates.round = (freshRoom.round || 1) + 1; updates.sniperTargets = []; } updates.currentTurn = nextTurn; }
-            } else if (freshRoom.gameMode === 'lava' || freshRoom.gameMode === 'black_hole') {
+            } else if (activeLava || activeBlackHole) {
                 const living = tempPlayers.filter(p => !p.isDead); const arrived = living.filter(p => p.finished);
                 if (arrived.length >= living.length - 1 && living.length > 1) { updates.status = 'finished'; updates.winner = "GARA TERMINATA!"; } else if (living.length === 0) { updates.status = 'finished'; updates.winner = "NESSUN SOPRAVVISSUTO!"; } else {
                     const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                     if (nextTurn <= currentPlayerIdx) {
                         updates.round = (freshRoom.round || 1) + 1;
-                        if (freshRoom.gameMode === 'lava') { let newLava = -1; const existingLava = freshRoom.lavaTiles || []; let attempts = 0; while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; } if (newLava !== -1) { updates.lavaTiles = [...existingLava, newLava]; updates.lastAction = `ROUND ${updates.round}: LAVA A ${newLava}!`; playSound('fire'); } }
-                        if (freshRoom.gameMode === 'black_hole') { const moveAmt = ((freshRoom.round - 1) % 6) + 1; updates.blackHolePos = (freshRoom.blackHolePos || 0) + moveAmt; updates.lastAction = `ROUND ${updates.round}: BUCO NERO AVANZA DI ${moveAmt}!`; playSound('suck'); tempPlayers = tempPlayers.map(p => { if (p.position <= updates.blackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; }); updates.players = tempPlayers; }
+                        if (activeLava) { let newLava = -1; const existingLava = freshRoom.lavaTiles || []; let attempts = 0; while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; } if (newLava !== -1) { updates.lavaTiles = [...existingLava, newLava]; updates.lastAction = `ROUND ${updates.round}: LAVA A ${newLava}!`; playSound('fire'); } }
+                        if (activeBlackHole) { const moveAmt = ((freshRoom.round - 1) % 6) + 1; updates.blackHolePos = (freshRoom.blackHolePos || 0) + moveAmt; updates.lastAction = `ROUND ${updates.round}: BUCO NERO AVANZA DI ${moveAmt}!`; playSound('suck'); tempPlayers = tempPlayers.map(p => { if (p.position <= updates.blackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; }); updates.players = tempPlayers; }
                     }
                     updates.currentTurn = nextTurn;
                 }
             } else if (freshRoom.gameMode !== 'tournament') {
-                if (finishedCount >= totalPlayers - 1 && totalPlayers > 1 && freshRoom.gameMode !== 'pressure') { updates.status = 'finished'; updates.winner = "TUTTI ARRIVATI!"; } 
-                else if (freshRoom.gameMode === 'pressure' && tempPlayers.filter(p => !p.isDead).length <= 1) {
+                if (finishedCount >= totalPlayers - 1 && totalPlayers > 1 && !activePressure) { updates.status = 'finished'; updates.winner = "TUTTI ARRIVATI!"; } 
+                else if (activePressure && tempPlayers.filter(p => !p.isDead).length <= 1) {
                     const winner = tempPlayers.find(p => !p.isDead);
                     updates.status = 'finished'; 
                     updates.winner = winner ? `${winner.name} VINCE LA PRESSIONE!` : "NESSUN SOPRAVVISSUTO!";
                 }
                 else {
-                    const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
+                    let nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                     if (nextTurn <= currentPlayerIdx) {
                         updates.round = (freshRoom.round || 1) + 1;
 
-                        // PRESSURE ELIMINATION LOGIC
-                        if (freshRoom.gameMode === 'pressure' && updates.round % 3 === 0) {
+                        if (activePressure && updates.round > 1 && updates.round % 3 === 1) {
                             const living = tempPlayers.filter(p => !p.isDead);
                             if (living.length > 1) {
-                                // Calculate total distance: (laps * 60) + position
-                                // Sort Ascending (Lowest distance first)
-                                living.sort((a,b) => ((a.laps||1)*60 + a.position) - ((b.laps||1)*60 + b.position));
-                                const victim = living[0]; // Player with lowest progress
+                                living.sort((a,b) => ((a.laps||1)*65 + a.position) - ((b.laps||1)*65 + b.position));
+                                const victim = living[0]; 
                                 
                                 const vIdx = tempPlayers.findIndex(p => p.uid === victim.uid);
                                 if (vIdx !== -1) {
@@ -1501,6 +1631,8 @@ function App() {
                                     log += ` 💀 PRESSURE: ${victim.name} ELIMINATO!`;
                                     playSound('lose');
                                     updates.players = tempPlayers;
+                                    updates.lastAction = log; 
+                                    nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                                 }
                             }
                         }
@@ -1519,12 +1651,11 @@ function App() {
                                 else if (selected === 'black_hole_spawn') { const newBlackHolePos = (freshRoom.blackHolePos || 0) + 3; updates.blackHolePos = newBlackHolePos; tempPlayers = tempPlayers.map(p => { if (p.position <= newBlackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; }); updates.players = tempPlayers; playSound('suck'); }
                             } else { updates.activeGlitch = null; updates.lastAction = `ROUND ${updates.round}: Glitch Disattivato.`; }
                         }
-                        if (freshRoom.gameMode === 'infection' && updates.round > 3) { const infectionSteps = [2, 3, 5, 7, 8]; const roll = infectionSteps[Math.floor(Math.random() * infectionSteps.length)]; const oldNpcPos = freshRoom.infectedNPC.position; const newNpcPos = oldNpcPos + roll; updates['infectedNPC.position'] = newNpcPos; updates['infectedNPC.lastMovedRound'] = updates.round; let killCount = 0; tempPlayers = tempPlayers.map(p => { if (!p.isDead && !p.finished && p.position <= newNpcPos) { killCount++; return { ...p, isDead: true, position: 0 }; } return p; }); updates.players = tempPlayers; updates.lastAction = `ROUND ${updates.round}: Virus avanza di ${roll}! ${killCount > 0 ? killCount + ' presi!' : ''}`; playSound('zombie'); }
+                        if (activeInfection && updates.round > 3) { const infectionSteps = [2, 3, 5, 7, 8]; const roll = infectionSteps[Math.floor(Math.random() * infectionSteps.length)]; const oldNpcPos = freshRoom.infectedNPC.position; const newNpcPos = oldNpcPos + roll; updates['infectedNPC.position'] = newNpcPos; updates['infectedNPC.lastMovedRound'] = updates.round; let killCount = 0; tempPlayers = tempPlayers.map(p => { if (!p.isDead && !p.finished && p.position <= newNpcPos) { killCount++; return { ...p, isDead: true, position: 0 }; } return p; }); updates.players = tempPlayers; updates.lastAction = `ROUND ${updates.round}: Virus avanza di ${roll}! ${killCount > 0 ? killCount + ' presi!' : ''}`; playSound('zombie'); }
                     }
                     updates.currentTurn = nextTurn;
                 }
             } else {
-                // Tournament mode turn logic (if not everyone finished)
                 const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
                 updates.currentTurn = nextTurn;
             }
@@ -1532,7 +1663,7 @@ function App() {
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), updates);
         } catch (e) { handleError(e); } finally {
             setIsRolling(false);
-            setIsMoving(false); // Ensure moving lock is released even if error
+            setIsMoving(false); 
         }
     };
 
@@ -1557,12 +1688,21 @@ function App() {
         let updatedPlayers = [...currentRoom.players];
         updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
 
-        if (option.id === 'leadership') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; let move = (p.id === player.id) ? 4 : 2; return { ...p, position: Math.min(p.position + move, 60) }; }); }
-        else if (option.id === 'teleport') { const others = updatedPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); if (others.length > 0) { const target = others[Math.floor(Math.random() * others.length)]; updatedPlayers[playerIdx].position = target.position; playSound('teleport'); } }
+        const isCustom = currentRoom.gameMode === 'custom';
+        const conf = isCustom ? currentRoom.customConfig : {};
+        const activePressure = currentRoom.gameMode === 'pressure' || conf.pressure;
+
+        if (option.id === 'leadership') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || (currentRoom.gameMode === 'sniper' && p.uid === currentRoom.sniperUid)) return p; let move = (p.id === player.id) ? 4 : 2; return { ...p, position: Math.min(p.position + move, 65) }; }); }
+        else if (option.id === 'teleport') { const others = updatedPlayers.filter(p => p.id !== player.id && !p.isDead && !p.finished && (currentRoom.gameMode !== 'relay' || p.teamId !== player.teamId) && (currentRoom.gameMode !== 'sniper' || p.uid !== currentRoom.sniperUid)); if (others.length > 0) { const target = others[Math.floor(Math.random() * others.length)]; updatedPlayers[playerIdx].position = target.position; 
+            // FIX: Copia Laps in Pressure mode
+            if (activePressure) {
+                updatedPlayers[playerIdx].laps = target.laps || 1;
+            }
+        playSound('teleport'); } }
         else if (option.id === 'reroll') { setDecisionMode(false); setDecisionOptions([]); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} tira di nuovo!` }); return; }
-        else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 5, 60); }
+        else if (option.id === 'turbo') { updatedPlayers[playerIdx].position = Math.min(player.position + 5, 65); }
         else if (option.id === 'anchor') { updatedPlayers = updatedPlayers.map(p => { if (p.isDead || p.finished || p.id === player.id) return p; return { ...p, position: Math.max(0, p.position - 2) }; }); playSound('punch'); }
-        else if (option.id === 'gamble') { const win = Math.random() > 0.5; const val = win ? 6 : -3; updatedPlayers[playerIdx].position = Math.max(0, Math.min(60, player.position + val)); playSound(win ? 'powerup' : 'lose'); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} SCOMMETTE E... ${win ? 'VINCE (+6)!' : 'PERDE (-3)!'}` }); setDecisionMode(false); setDecisionOptions([]); return; }
+        else if (option.id === 'gamble') { const win = Math.random() > 0.5; const val = win ? 6 : -3; updatedPlayers[playerIdx].position = Math.max(0, Math.min(65, player.position + val)); playSound(win ? 'powerup' : 'lose'); await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updatedPlayers, lastAction: `${player.name} SCOMMETTE E... ${win ? 'VINCE (+6)!' : 'PERDE (-3)!'}` }); setDecisionMode(false); setDecisionOptions([]); return; }
 
         setDecisionMode(false); setDecisionOptions([]);
         const nextTurn = getNextTurn(updatedPlayers, playerIdx);
@@ -1578,13 +1718,30 @@ function App() {
         let updatedPlayers = [...currentRoom.players];
         updatedPlayers[playerIdx] = { ...updatedPlayers[playerIdx], pendingTarget: null };
 
+        const isCustom = currentRoom.gameMode === 'custom';
+        const conf = isCustom ? currentRoom.customConfig : {};
+        const activePressure = currentRoom.gameMode === 'pressure' || conf.pressure;
+
         if (targetSelectionMode === 'target_back_4') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 4); playSound('punch'); }
         else if (targetSelectionMode === 'curse') { updatedPlayers[targetIdx].activeCurse = true; playSound('curse'); }
-        else if (targetSelectionMode === 'vampire') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 3); updatedPlayers[playerIdx].position = Math.min(60, updatedPlayers[playerIdx].position + 3); playSound('suck'); }
+        else if (targetSelectionMode === 'vampire') { updatedPlayers[targetIdx].position = Math.max(0, updatedPlayers[targetIdx].position - 3); updatedPlayers[playerIdx].position = Math.min(65, updatedPlayers[playerIdx].position + 3); playSound('suck'); }
         else if (targetSelectionMode === 'force_stop') { updatedPlayers[targetIdx].skipTurns = (updatedPlayers[targetIdx].skipTurns || 0) + 1; playSound('lock'); }
-        else if (targetSelectionMode === 'targeted_swap') { const myPos = updatedPlayers[playerIdx].position; updatedPlayers[playerIdx].position = updatedPlayers[targetIdx].position; updatedPlayers[targetIdx].position = myPos; playSound('teleport'); }
+        else if (targetSelectionMode === 'targeted_swap') { 
+            const myPos = updatedPlayers[playerIdx].position; 
+            updatedPlayers[playerIdx].position = updatedPlayers[targetIdx].position; 
+            updatedPlayers[targetIdx].position = myPos; 
+
+            // FIX: Scambia Laps in Pressure mode
+            if (activePressure) {
+                const myLaps = updatedPlayers[playerIdx].laps || 1;
+                const theirLaps = updatedPlayers[targetIdx].laps || 1;
+                updatedPlayers[playerIdx].laps = theirLaps;
+                updatedPlayers[targetIdx].laps = myLaps;
+            }
+
+            playSound('teleport'); 
+        }
         else if (targetSelectionMode === 'duel') {
-            // Start Duel Mode
             const challenger = updatedPlayers[playerIdx];
             const target = updatedPlayers[targetIdx];
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), {
@@ -1597,13 +1754,13 @@ function App() {
                     tWins: 0,
                     cRoll: null,
                     tRoll: null,
-                    phase: 'waiting_c' // waiting for challenger roll
+                    phase: 'waiting_c' 
                 },
                 players: updatedPlayers,
                 lastAction: `${challenger.name} HA SFIDATO ${target.name}!`
             });
             setTargetSelectionMode(null);
-            return; // Don't advance turn yet
+            return; 
         }
 
         setTargetSelectionMode(null); setDecisionMode(false); setDecisionOptions([]);
@@ -1626,7 +1783,6 @@ function App() {
                 'duelState.phase': 'waiting_t'
             };
         } else if (role === 'target' && duel.phase === 'waiting_t') {
-            // Target rolls, compare logic
             const cRoll = duel.cRoll;
             const tRoll = roll;
             let newCWins = duel.cWins;
@@ -1635,12 +1791,9 @@ function App() {
 
             if (cRoll > tRoll) { newCWins++; winnerName = "Sfidante"; }
             else if (tRoll > cRoll) { newTWins++; winnerName = "Avversario"; }
-            else { /* Tie, no points or handled as draw */ }
 
-            // Check if match ends
-            // Best of 3: if someone reaches 2 wins, or after 3 rounds
             let duelOver = false;
-            let finalWinner = null; // 'challenger' or 'target'
+            let finalWinner = null; 
 
             if (newCWins >= 2) { duelOver = true; finalWinner = 'challenger'; }
             else if (newTWins >= 2) { duelOver = true; finalWinner = 'target'; }
@@ -1648,22 +1801,20 @@ function App() {
                 duelOver = true;
                 if (newCWins > newTWins) finalWinner = 'challenger';
                 else if (newTWins > newCWins) finalWinner = 'target';
-                else finalWinner = 'draw'; // Draw (usually challenger loses benefit or nothing happens)
+                else finalWinner = 'draw'; 
             }
 
             if (duelOver) {
-                // Apply Effects
                 let players = [...currentRoom.players];
                 const cIdx = players.findIndex(p => p.uid === duel.challengerUid);
                 const tIdx = players.findIndex(p => p.uid === duel.targetUid);
-                const configMax = (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : (currentRoom.gameMode === 'hunter' ? 80 : 60)))));
+                const configMax = (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : (currentRoom.gameMode === 'hunter' ? 80 : 65)))));
 
                 if (finalWinner === 'challenger') {
                     players[cIdx].position = Math.min(configMax, players[cIdx].position + 6);
                     log = `${players[cIdx].name} VINCE IL DUELLO! (+6)`;
                     playSound('win');
                 } else {
-                    // Target wins or draw (challenger fails)
                     players[cIdx].position = Math.max(0, players[cIdx].position - 3);
                     players[tIdx].position = Math.min(configMax, players[tIdx].position + 3);
                     log = `${players[cIdx].name} PERDE IL DUELLO! (-3, Avversario +3)`;
@@ -1677,7 +1828,6 @@ function App() {
                     currentTurn: getNextTurn(players, currentRoom.currentTurn)
                 };
             } else {
-                // Next Round
                 updates = {
                     'duelState.cWins': newCWins,
                     'duelState.tWins': newTWins,
@@ -1704,7 +1854,6 @@ function App() {
     const handleRoll = async () => {
         if (isRolling || isMoving || !currentRoom) return;
 
-        // Force reset lock if it gets stuck for too long (safety mechanism)
         const rollSafety = setTimeout(() => {
             if (isRolling) { setIsRolling(false); }
         }, 3000);
@@ -1712,7 +1861,6 @@ function App() {
         try {
             setIsRolling(true); playSound('step');
 
-            // FETCH FRESH DATA FIRST
             const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode));
             if (!snap.exists()) return;
             const freshRoom = snap.data();
@@ -1726,7 +1874,6 @@ function App() {
             const isMyTeamManualBot = player.isBot && freshRoom.gameMode === 'relay' && me && player.teamId === me.teamId && teamMode === 'manual';
             const isHostControllingBot = player.isBot && freshRoom.gameMode !== 'relay' && freshRoom.hostId === user.uid;
 
-            // Logic check with FRESH data
             if (player.uid !== user.uid && !isMyTeamManualBot && !isAutoBot && !isHostControllingBot) {
                 return;
             }
@@ -1767,14 +1914,13 @@ function App() {
             }
 
             const config = freshRoom.gameMode === 'elimination' ? ELIM_MAP : (freshRoom.gameMode === 'gem_hunt' ? GEM_MAP : (freshRoom.gameMode === 'reverse' ? REVERSE_MAP : (freshRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP : (freshRoom.gameMode === 'hunter' ? HUNTER_MAP : CLASSIC_MAP))));
-            const maxVal = config.max !== undefined ? config.max : 60;
+            const maxVal = config.max !== undefined ? config.max : 65;
 
             let newPos; if (isReverse) { newPos = Math.max(0, player.position - val); } else { newPos = Math.max(0, Math.min(maxVal, player.position + val)); }
 
             updated[playerIdx].pendingTarget = newPos;
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, lastAction: `${player.name} fa ${val}!` });
         } catch (e) { handleError(e); } finally {
-            // Safe reset
             clearTimeout(rollSafety);
             if (currentRoom.gameMode !== 'gem_hunt' && currentRoom.gameMode !== 'tiles' && currentRoom.gameMode !== 'coin_collector' && currentRoom.gameMode !== 'brawl') {
                 setIsRolling(false);
@@ -1794,10 +1940,8 @@ function App() {
         return next;
     };
 
-    // AUTO-BOT & DUEL BOT LOGIC
     useEffect(() => {
         if (currentRoom?.status === 'playing') {
-            // DUEL LOGIC FOR BOTS
             if (currentRoom.duelState && currentRoom.duelState.active && currentRoom.hostId === user?.uid) {
                 const duel = currentRoom.duelState;
                 const challenger = currentRoom.players.find(p => p.uid === duel.challengerUid);
@@ -1815,10 +1959,8 @@ function App() {
             const p = currentRoom.players[currentRoom.currentTurn];
             if (!p) return;
 
-            // Prevent bot re-triggering for the same turn if already handled locally
             const turnKey = `${currentRoom.currentTurn}-${p.uid}`;
 
-            // Reset ref if turn changed
             if (lastBotTurnRef.current.turn !== currentRoom.currentTurn) {
                 lastBotTurnRef.current = { turn: currentRoom.currentTurn, timestamp: Date.now() };
             }
@@ -1829,7 +1971,6 @@ function App() {
             const isGenericBot = p.isBot && currentRoom.gameMode !== 'relay' && currentRoom.hostId === user?.uid && !isRolling && !isMoving && !decisionMode && !directionChoice && botMode === 'auto';
 
             if (!currentRoom.duelState && ((currentRoom.gameMode === 'relay' && shouldAutoRun) || (currentRoom.gameMode !== 'relay' && isGenericBot))) {
-                // Reduced Delays for Snappier Bots
                 const delay = 1000 / botSpeed; 
                 const moveDelay = 500 / botSpeed;
 
@@ -1848,15 +1989,10 @@ function App() {
                         if (target !== -1) { const t = setTimeout(() => executeTileMove(p.uid, target), moveDelay); return () => clearTimeout(t); }
                     }
                 } else {
-                    // Classic Movement Logic
                     if (p.pendingTarget === null) { 
-                        // ROLL PHASE
-                        // Only roll if we haven't rolled recently or if it's clearly a new attempt needed
                         const t = setTimeout(() => handleRoll(), delay); 
                         return () => clearTimeout(t); 
                     } else { 
-                        // MOVE PHASE
-                        // Execute move if pending target exists
                         const t = setTimeout(() => executeMove(p.uid, p.pendingTarget), delay); 
                         return () => clearTimeout(t); 
                     }
@@ -1883,7 +2019,6 @@ function App() {
 
     const isSniperTurn = currentRoom?.gameMode === 'sniper' && currentPlayer?.uid === currentRoom?.sniperUid && canControlCurrent;
 
-    // --- DUEL CONSTANTS ---
     const duelActive = currentRoom?.duelState && currentRoom.duelState.active;
     const duelData = duelActive ? currentRoom.duelState : null;
     const duelChallenger = duelActive ? currentRoom.players.find(p => p.uid === duelData.challengerUid) : null;
@@ -1898,7 +2033,27 @@ function App() {
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col relative">
 
-            {/* DUEL MODAL */}
+            {view === 'game' && currentRoom && (
+                <div className="fixed bottom-24 left-4 z-[60] w-64 flex flex-col gap-2 pointer-events-none">
+                    <div className={`flex flex-col justify-end gap-1 min-h-[60px] transition-opacity duration-1000 ${chatVisible ? 'opacity-100' : 'opacity-0'}`}>
+                        {currentRoom.chatMessages?.slice(-3).map(msg => (
+                            <div key={msg.id} className="bg-black/60 text-white p-2 rounded-lg text-xs backdrop-blur-sm animate-in fade-in slide-in-from-left-4 break-words">
+                                <span className={`font-bold ${msg.uid === user.uid ? 'text-yellow-400' : 'text-blue-400'}`}>{msg.sender}:</span> {msg.text}
+                            </div>
+                        ))}
+                    </div>
+                    <form onSubmit={sendMessage} className="pointer-events-auto flex gap-2">
+                        <input 
+                            value={chatInput} 
+                            onChange={e => setChatInput(e.target.value)} 
+                            className={`flex-1 bg-white/90 rounded-lg px-2 py-1 text-xs font-bold border-2 border-indigo-500 shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-opacity duration-500 ${chatVisible ? 'opacity-100' : 'opacity-60 hover:opacity-100 focus:opacity-100'}`}
+                            placeholder="Scrivi..."
+                        />
+                        <button type="submit" className={`bg-indigo-600 text-white p-1.5 rounded-lg shadow-lg hover:bg-indigo-500 transition-opacity duration-500 ${chatVisible ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}><Send size={14}/></button>
+                    </form>
+                </div>
+            )}
+
             {duelActive && duelChallenger && duelTarget && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
                     <div className="max-w-lg w-full bg-slate-900 rounded-3xl shadow-2xl border-4 border-amber-500 overflow-hidden relative">
@@ -1908,7 +2063,6 @@ function App() {
                         </div>
                         
                         <div className="p-8 flex items-center justify-between">
-                            {/* CHALLENGER SIDE */}
                             <div className={`flex flex-col items-center gap-2 transition-all ${isChallengerTurn ? 'scale-110 opacity-100' : 'opacity-50'}`}>
                                 <div className={`p-2 rounded-full border-4 ${isChallengerTurn ? 'border-amber-400 shadow-[0_0_20px_orange]' : 'border-slate-600'}`}>
                                     <PlayerAvatar charId={duelChallenger.characterId} size="lg"/>
@@ -1924,7 +2078,6 @@ function App() {
 
                             <div className="text-white font-black text-4xl italic opacity-30">VS</div>
 
-                            {/* TARGET SIDE */}
                             <div className={`flex flex-col items-center gap-2 transition-all ${isTargetTurn ? 'scale-110 opacity-100' : 'opacity-50'}`}>
                                 <div className={`p-2 rounded-full border-4 ${isTargetTurn ? 'border-amber-400 shadow-[0_0_20px_orange]' : 'border-slate-600'}`}>
                                     <PlayerAvatar charId={duelTarget.characterId} size="lg"/>
@@ -2060,6 +2213,7 @@ function App() {
                             <input type="text" placeholder="Nickname" className="w-full p-4 text-center text-xl font-black rounded-xl border-4 border-indigo-100 outline-none" value={nickname} onChange={e=>setNickname(e.target.value)} />
                             <div className="grid grid-cols-2 gap-2">
                                 <button onClick={() => createRoom('classic')} disabled={!nickname} className="h-24 bg-green-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all"><Flag className="mx-auto mb-1"/> CLASSICA</button>
+                                <button onClick={() => nickname && setView('custom_setup')} disabled={!nickname} className="h-24 bg-slate-700 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-slate-500"><Settings className="mx-auto mb-1"/> CUSTOM</button>
                                 <button onClick={() => createRoom('tournament')} disabled={!nickname} className="h-24 bg-yellow-500 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-yellow-200"><Trophy className="mx-auto mb-1"/> TORNEO</button>
                                 <button onClick={() => createRoom('pressure')} disabled={!nickname} className="h-24 bg-red-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-red-300"><Gauge className="mx-auto mb-1"/> PRESSURE</button>
                                 <button onClick={() => createRoom('glitch')} disabled={!nickname} className="h-24 bg-purple-600 rounded-xl text-white font-black shadow-lg hover:scale-105 transition-all border-2 border-fuchsia-400"><Bug className="mx-auto mb-1"/> GLITCH</button>
@@ -2080,6 +2234,37 @@ function App() {
                             </div>
                             <button onClick={() => nickname && setView('relay_setup')} disabled={!nickname} className="w-full py-3 bg-blue-600 rounded-xl text-white font-black shadow-lg flex flex-col items-center"><Users size={20}/> STAFFETTA</button>
                             <div className="flex gap-2"><input id="codeIn" type="text" placeholder="CODICE" className="flex-1 p-3 rounded-xl border-2 font-black text-center uppercase"/><button onClick={() => joinRoom(document.getElementById('codeIn').value)} disabled={!nickname} className="px-6 bg-slate-800 text-white font-black rounded-xl uppercase text-xs">Entra</button></div>
+                        </div>
+                    )}
+
+                    {view === 'custom_setup' && (
+                        <div className="max-w-md w-full mt-10 space-y-4 bg-white p-6 rounded-2xl shadow-xl border-4 border-slate-700">
+                            <h2 className="text-2xl font-black text-center text-slate-900 flex items-center justify-center gap-2"><Settings/> CONFIGURAZIONE CUSTOM</h2>
+                            <div className="space-y-2">
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo Mappa</div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCustomSettings({...customSettings, mapType: 'classic'})} className={`flex-1 py-3 rounded-lg font-black uppercase text-xs ${customSettings.mapType === 'classic' ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>Classica (65)</button>
+                                    <button onClick={() => setCustomSettings({...customSettings, mapType: 'elimination'})} className={`flex-1 py-3 rounded-lg font-black uppercase text-xs ${customSettings.mapType === 'elimination' ? 'bg-slate-800 text-white' : 'bg-slate-100'}`}>Eliminazione (34)</button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { k: 'lava', n: 'Lava', i: <Flame size={14}/>, c: 'bg-orange-100 text-orange-700' },
+                                    { k: 'elimination', n: 'Eliminazione', i: <Skull size={14}/>, c: 'bg-cyan-100 text-cyan-700' },
+                                    { k: 'punitive', n: 'Punitiva', i: <Swords size={14}/>, c: 'bg-rose-100 text-rose-700' },
+                                    { k: 'pressure', n: 'Pressure', i: <Gauge size={14}/>, c: 'bg-red-100 text-red-700' },
+                                    { k: 'infection', n: 'Infezione', i: <Biohazard size={14}/>, c: 'bg-lime-100 text-lime-700' },
+                                    { k: 'blackHole', n: 'Buco Nero', i: <Disc size={14}/>, c: 'bg-slate-200 text-slate-800' },
+                                    { k: 'sniper', n: 'Cecchino', i: <Scope size={14}/>, c: 'bg-red-200 text-red-900' },
+                                    { k: 'reverse', n: 'Reverse', i: <Rewind size={14}/>, c: 'bg-amber-100 text-amber-700' },
+                                ].map(opt => (
+                                    <button key={opt.k} onClick={() => toggleCustomSetting(opt.k)} className={`p-3 rounded-xl border-2 flex items-center gap-2 font-bold text-sm transition-all ${customSettings[opt.k] ? `${opt.c} border-current` : 'bg-white border-slate-100 text-slate-400'}`}>
+                                        {customSettings[opt.k] ? <CheckSquare size={16}/> : <Square size={16}/>}
+                                        <span className="flex items-center gap-1">{opt.i} {opt.n}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            <button onClick={() => createRoom('custom')} className="w-full py-4 bg-slate-800 text-white font-black text-xl rounded-xl shadow-lg mt-4">CREA LOBBY</button>
                         </div>
                     )}
 
@@ -2104,6 +2289,19 @@ function App() {
                                 </div>}
                             </div>
                             
+                            {currentRoom.gameMode === 'custom' && (
+                                <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Configurazione Attiva</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="bg-slate-100 px-2 py-1 rounded text-xs font-bold uppercase border">Mappa: {currentRoom.customConfig.mapType}</span>
+                                        {Object.entries(currentRoom.customConfig).map(([k, v]) => {
+                                            if (k === 'mapType' || !v) return null;
+                                            return <span key={k} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold uppercase border border-indigo-100">{k}</span>
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {currentRoom.gameMode === 'tournament' && currentRoom.hostId === user.uid && (
                                 <div className="bg-white p-6 rounded-2xl shadow-md border-t-8 border-yellow-500 animate-in slide-in-from-top-4">
                                     <h3 className="font-black text-lg text-yellow-800 mb-4 flex items-center gap-2"><Trophy/> CONFIGURAZIONE TORNEO</h3>
@@ -2180,7 +2378,6 @@ function App() {
                                         const teamPlayers = currentRoom.players.filter(p => p.teamId === teamIdx);
                                         const teamHumanPlayers = teamPlayers.filter(p => !p.isBot);
                                         const isMyTeam = currentRoom.players.find(p => p.uid === user.uid)?.teamId === teamIdx;
-                                        // Team Leader is first human in the team list
                                         const teamLeader = teamHumanPlayers.length > 0 ? teamHumanPlayers[0].uid : null;
                                         const amILeader = teamLeader === user.uid;
 
@@ -2354,9 +2551,9 @@ function App() {
                                             }
                                         </div>
                                     )}
-                                    {currentRoom.gameMode === 'pressure' && (
+                                    {(currentRoom.gameMode === 'pressure' || currentRoom.customConfig?.pressure) && (
                                         <div className="flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-lg border border-red-200 font-black text-xs uppercase animate-pulse">
-                                            GIRO {currentPlayer.laps || 1} • PROX ELIM: ROUND {Math.ceil(currentRoom.round/3)*3}
+                                            GIRO {currentPlayer.laps || 1} • PROX ELIM: ROUND {Math.floor((currentRoom.round - 1) / 3) * 3 + 4}
                                         </div>
                                     )}
                                 </div>
@@ -2367,16 +2564,16 @@ function App() {
                             </div>
 
                             <div className={`gap-1.5 p-2 bg-slate-200/50 rounded-xl grid ${currentRoom.gameMode === 'brawl' ? 'grid-cols-8 max-w-2xl mx-auto' : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 'grid-cols-11' : 'grid-cols-5 md:grid-cols-8 lg:grid-cols-10')} ${currentRoom.activeGlitch === 'earthquake' ? 'animate-bounce' : ''} ${currentRoom.activeGlitch === 'darkness' ? 'grayscale brightness-50 contrast-150' : ''}`}>
-                                {Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : (currentRoom.gameMode === 'hunter' ? 80 : 60)))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
+                                {Array.from({ length: (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' ? 121 : (currentRoom.gameMode === 'battle_royale' ? 40 : (currentRoom.gameMode === 'brawl' ? 64 : (currentRoom.gameMode === 'elimination' || (currentRoom.gameMode === 'custom' && currentRoom.customConfig?.mapType === 'elimination') ? 34 : (currentRoom.gameMode === 'gem_hunt' ? 50 : (currentRoom.gameMode === 'hunter' ? 80 : 65)))))) + (currentRoom.gameMode === 'brawl' ? 0 : 1) }).map((_, i) => (
                                     <BoardCell 
                                         key={i} 
                                         num={i} 
                                         players={currentRoom.players.filter(p => p.position === i && !p.isDead)} 
-                                        special={(currentRoom.gameMode === 'elimination' ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : (currentRoom.gameMode === 'hunter' ? HUNTER_MAP.specials[i] : CLASSIC_MAP.specials[i]))))))} 
+                                        special={(currentRoom.gameMode === 'elimination' || (currentRoom.gameMode === 'custom' && (currentRoom.customConfig?.mapType === 'elimination' || currentRoom.customConfig?.elimination)) ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' || currentRoom.customConfig?.reverse ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : (currentRoom.gameMode === 'hunter' ? HUNTER_MAP.specials[i] : CLASSIC_MAP.specials[i]))))))} 
                                         isElimination={currentRoom.gameMode === 'elimination'} 
                                         isBattleRoyale={currentRoom.gameMode === 'battle_royale'}
                                         isTournament={currentRoom.gameMode === 'tournament'}
-                                        isPressure={currentRoom.gameMode === 'pressure'} 
+                                        isPressure={currentRoom.gameMode === 'pressure' || currentRoom.customConfig?.pressure} 
                                         isPendingTarget={canControlCurrent && currentPlayer.pendingTarget === i} 
                                         isValidMoveTarget={(currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') && canControlCurrent && currentPlayer.remainingMoves > 0 && getManhattanDistance(currentPlayer.position, i, currentRoom.gameMode === 'brawl' ? 8 : 11) === 1 && (!currentRoom.voidTiles || !currentRoom.voidTiles.includes(i))}
                                         onCellClick={isSniperTurn ? () => handleSniperTileClick(i) : (targetSelectionMode ? () => {} : ((currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl') && canControlCurrent && currentPlayer.remainingMoves > 0 ? () => executeTileMove(user.uid, i) : () => executeMove(user.uid, i)))}
@@ -2390,7 +2587,7 @@ function App() {
                                         bossTargetUid={currentRoom.bossTargetUid}
                                         tileOwnerColor={currentRoom.tileOwners?.[i]}
                                         isTilesMode={currentRoom.gameMode === 'tiles'}
-                                        isReverse={currentRoom.gameMode === 'reverse'}
+                                        isReverse={currentRoom.gameMode === 'reverse' || currentRoom.customConfig?.reverse}
                                         sniperTargets={isSniperTurn ? sniperSelection : currentRoom.sniperTargets}
                                         activeGlitch={currentRoom.activeGlitch}
                                         currentUserId={user.uid}
@@ -2405,7 +2602,6 @@ function App() {
                                     <div className="bg-indigo-900 text-white p-6 rounded-2xl shadow-2xl text-center border-4 border-yellow-400 animate-bounce-slow"><Trophy size={48} className="mx-auto text-yellow-400 mb-2"/><h2 className="text-3xl font-black uppercase">Vittoria!</h2><p className="text-xl font-bold opacity-90">{currentRoom.winner}</p><button onClick={() => { setView('menu'); setRoomCode(''); }} className="mt-4 bg-white text-indigo-900 px-6 py-2 rounded-full font-black uppercase text-xs">Menu</button></div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {/* SNIPER UI */}
                                         {isSniperTurn && (
                                             <div className="bg-red-950 p-4 rounded-2xl shadow-2xl border-4 border-red-500 animate-in slide-in-from-bottom-4">
                                                 <h3 className="text-center font-black text-white text-xl uppercase mb-2">SELEZIONA 3 BERSAGLI</h3>
@@ -2422,7 +2618,6 @@ function App() {
                                             </div>
                                         )}
 
-                                        {/* Normal Dice UI */}
                                         {!isSniperTurn && !duelActive && canControlCurrent && lastRoll !== null && !isRolling && !directionChoice && !decisionMode && (!currentPlayer.remainingMoves || currentPlayer.remainingMoves <= 0) && (
                                             <div className="bg-white/90 backdrop-blur-sm border-2 border-indigo-500 text-indigo-900 rounded-xl p-2 text-center shadow-lg animate-in slide-in-from-bottom-2">
                                                 <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Hai fatto</div>
@@ -2497,13 +2692,12 @@ function App() {
                     <div className="hidden lg:flex flex-col w-80 bg-indigo-950 text-white border-l-4 border-white/10 overflow-y-auto p-4 space-y-3">
                         <h3 className="font-black text-lg border-b border-white/10 pb-2 flex items-center gap-2"><Trophy size={20} className="text-yellow-400"/> CLASSIFICA</h3>
                         {[...currentRoom.players].sort((a,b) => {
-                            if (currentRoom.gameMode === 'tournament') return (b.score || 0) - (a.score || 0); // Tournament Sort by Score
-                            if (currentRoom.gameMode === 'pressure') {
+                            if (currentRoom.gameMode === 'tournament') return (b.score || 0) - (a.score || 0); 
+                            if (currentRoom.gameMode === 'pressure' || currentRoom.customConfig?.pressure) {
                                 if (a.isDead && !b.isDead) return 1; 
                                 if (!a.isDead && b.isDead) return -1;
-                                // Sort by Total Distance: (Laps * 60) + Position
-                                const distA = ((a.laps || 1) * 60) + a.position;
-                                const distB = ((b.laps || 1) * 60) + b.position;
+                                const distA = ((a.laps || 1) * 65) + a.position;
+                                const distB = ((b.laps || 1) * 65) + b.position;
                                 return distB - distA;
                             }
                             if (a.isDead && !b.isDead) return 1; 
@@ -2518,7 +2712,7 @@ function App() {
                             if (!a.finished && b.finished) return 1;
                             if (a.finished && b.finished) return (a.rank || 0) - (b.rank || 0);
                             if (currentRoom.gameMode === 'gem_hunt') return (b.collectedGems?.length||0) - (a.collectedGems?.length||0);
-                            if (currentRoom.gameMode === 'reverse') return a.position - b.position; 
+                            if (currentRoom.gameMode === 'reverse' || currentRoom.customConfig?.reverse) return a.position - b.position; 
                             return b.position - a.position;
                         }).map((p, i) => {
                             const tileCount = currentRoom.gameMode === 'tiles' ? Object.values(currentRoom.tileOwners || {}).filter(c => c === p.paintColor).length : 0;
@@ -2529,16 +2723,16 @@ function App() {
                                 <div className="flex-1 min-w-0">
                                     <div className="font-black text-sm truncate">{p.name}</div>
                                     <div className="text-[10px] font-bold text-white/50 uppercase">
-                                        {currentRoom.gameMode === 'tiles' ? `Tiles: ${tileCount}` : (currentRoom.gameMode === 'coin_collector' ? `${p.score || 0} Punti` : (p.isDead ? 'Eliminato' : (p.finished ? 'Qualificato' : (currentRoom.gameMode === 'pressure' ? `Giro ${p.laps || 1} • Cas ${p.position}` : `Casella ${p.position}`)) ) )} 
+                                        {currentRoom.gameMode === 'tiles' ? `Tiles: ${tileCount}` : (currentRoom.gameMode === 'coin_collector' ? `${p.score || 0} Punti` : (p.isDead ? 'Eliminato' : (p.finished ? 'Qualificato' : (currentRoom.gameMode === 'pressure' || currentRoom.customConfig?.pressure ? `Giro ${p.laps || 1} • Cas ${p.position}` : `Casella ${p.position}`)) ) )} 
                                         {p.activeCurse && "• Maledetto"}
                                         {p.extraDice && "• DADI++"}
                                         {currentRoom.gameMode === 'gem_hunt' && ` • Gemme: ${p.collectedGems?.length || 0}/5`}
-                                        {currentRoom.gameMode === 'lava' && ` • Vite: ${p.lives}`}
+                                        {(currentRoom.gameMode === 'lava' || currentRoom.customConfig?.lava) && ` • Vite: ${p.lives}`}
                                         {currentRoom.gameMode === 'glitch' && ` • Vite: ${p.lives}`}
                                         {currentRoom.gameMode === 'brawl' && ` • Vite: ${p.lives}`}
                                         {currentRoom.gameMode === 'tournament' && ` • Punti: ${p.score || 0}`}
                                         {currentRoom.gameMode === 'raid_boss' && (p.uid === currentRoom.hostId ? ` • Boss HP: ${currentRoom.bossHp}` : ` • Vite: ${p.lives}`)}
-                                        {currentRoom.gameMode === 'sniper' && p.uid !== currentRoom.sniperUid && ` • Vite: ${p.lives}`}
+                                        {(currentRoom.gameMode === 'sniper' || currentRoom.customConfig?.sniper) && p.uid !== currentRoom.sniperUid && ` • Vite: ${p.lives}`}
                                     </div>
                                 </div>
                                 {currentRoom.gameMode === 'raid_boss' && p.uid === currentRoom.bossTargetUid && <Crosshair className="text-red-500 animate-pulse"/>}
