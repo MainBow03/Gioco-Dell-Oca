@@ -289,7 +289,7 @@ const REVERSE_MAP = {
     max: 0,
     specials: {
         ...CLASSIC_MAP.specials,
-        6: { ...CLASSIC_MAP.specials[6], desc: "Il ponte ti porta alla 12... più vicino al traguardo!" },
+        6: { ...CLASSIC_MAP.specials[6], desc: "Il ponte crolla! Torni indietro alla 12!" },
         42: { ...CLASSIC_MAP.specials[42], name: "Scorciatoia", icon: <Rewind/>, desc: "Scorciatoia Labirinto! Salti alla 30 (più vicino allo zero)!" },
         58: { ...CLASSIC_MAP.specials[58], desc: "Lo scheletro ti manda allo START (0)! VITTORIA ISTANTANEA?!" },
         5: { ...CLASSIC_MAP.specials[5], name: 'Malus +2', icon: <ArrowUp/>, desc: "Oh no! Ti allontani di 2 caselle dallo zero!" },
@@ -638,6 +638,10 @@ function App() {
         };
     }, [currentRoom?.chatMessages]);
 
+    const getSpecialSafe = (specialsObj, posIdx) => {
+        if (!specialsObj) return null;
+        return specialsObj[posIdx] || specialsObj[String(posIdx)] || null;
+    };
 
     const generateEliminationSpecials = () => {
         const max = 34;
@@ -666,7 +670,7 @@ function App() {
                 usedPos.add(pos);
                 let finalItem = { ...item };
                 if (item.type === 'BACK_REL') { finalItem.type = 'BACK'; finalItem.val = Math.max(0, pos - item.val); }
-                specials[pos] = finalItem;
+                specials[String(pos)] = finalItem; // Forza l'indice a stringa per evitare bug in Firestore
             }
         });
         return specials;
@@ -938,18 +942,12 @@ function App() {
                 const teamUsers = Array.from({ length: numTeams }, () => []);
                 gamePlayers.forEach(p => { if (p.teamId < numTeams) teamUsers[p.teamId].push(p); });
                 for (let t = 0; t < numTeams; t++) {
-                    const users = teamUsers[t];
-                    if (users.length === 0) continue; 
-                    for (let slot = 0; slot < teamSize; slot++) {
-                        const userIndex = slot % users.length;
-                        const baseUser = users[userIndex];
-                        let charId = baseUser.characterId;
-                        if (slot >= users.length) {
-                            const usedChars = new Set([...gamePlayers.map(p => p.characterId), ...expandedPlayers.map(p => p.characterId)]);
-                            const available = ROSTER.map(c => c.id).filter(id => !usedChars.has(id));
-                            charId = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : 0;
+                    const uArr = teamUsers[t];
+                    if (uArr.length > 0) {
+                        for(let i=0; i<teamSize; i++) {
+                            const u = uArr[i % uArr.length];
+                            expandedPlayers.push({ ...u, uid: `${u.uid}_${i}`, id: `${u.uid}_${i}`, pawnIdx: i });
                         }
-                        expandedPlayers.push({ ...baseUser, id: `${baseUser.uid}_slot${slot}`, pawnIdx: slot, characterId: charId, position: 0, finished: false, skipTurns: 0, pendingTarget: null, activeCurse: false, lives: 1 });
                     }
                 }
                 gamePlayers = [];
@@ -1116,7 +1114,7 @@ function App() {
         if (currentRoom.gameMode !== 'relay') return false;
         if (pawn.pawnIdx === 0) return false; 
         const teammate = allPlayers.find(p => p.teamId === pawn.teamId && p.pawnIdx === pawn.pawnIdx - 1);
-        return teammate && !teammate.finished;
+        return teammate && !teammate.finished && !teammate.isDead;
     };
 
     const checkTeamWin = (players, teamId) => {
@@ -1158,7 +1156,7 @@ function App() {
                     let pushY = targetCoords.y + (dy * 2);
                     let pushIdx = -1;
                     if (pushX >= 0 && pushX < 8 && pushY >= 0 && pushY < 8) { pushIdx = pushY * 8 + pushX; } else { pushIdx = -999; }
-                    if (pushIdx === -999 || (currentRoom.voidTiles && currentRoom.voidTiles.includes(pushIdx))) { tempPlayers[occupantIdx].lives -= 1; tempPlayers[occupantIdx].isDead = true; playSound('punch'); } 
+                    if (pushIdx === -999 || (currentRoom.voidTiles && currentRoom.voidTiles.includes(pushIdx))) { tempPlayers[occupantIdx].lives -= 1; if (tempPlayers[occupantIdx].lives <= 0) { tempPlayers[occupantIdx].isDead = true; } playSound('punch'); } 
                     else { 
                         tempPlayers[occupantIdx].position = pushIdx; playSound('punch'); 
                         if (currentRoom.lavaTiles && currentRoom.lavaTiles.includes(pushIdx)) { tempPlayers[occupantIdx].lives -= 1; if (tempPlayers[occupantIdx].lives <= 0) tempPlayers[occupantIdx].isDead = true; playSound('fire'); }
@@ -1232,7 +1230,16 @@ function App() {
                         const living = tempPlayers.filter(p => !p.isDead);
                         if (living.length <= 1 && tempPlayers.length > 1) { updates.status = 'finished'; updates.winner = living.length === 1 ? `${living[0].name} È L'ULTIMO SOPRAVVISSUTO!` : "TUTTI MORTI!"; playSound('win'); }
                     }
-                    else if (currentRoom.gameMode === 'tiles' && newRound > currentRoom.maxRounds) { updates.status = 'finished'; updates.winner = "GARA TERMINATA! CALCOLO PUNTEGGI..."; } 
+                    else if (currentRoom.gameMode === 'tiles' && newRound > currentRoom.maxRounds) { 
+                        const counts = {};
+                        Object.values(newTileOwners).forEach(color => { counts[color] = (counts[color] || 0) + 1; });
+                        let maxScore = -1; let winnerColor = null;
+                        Object.entries(counts).forEach(([color, score]) => { if (score > maxScore) { maxScore = score; winnerColor = color; } });
+                        const winnerPlayer = tempPlayers.find(p => p.paintColor === winnerColor);
+                        updates.status = 'finished'; 
+                        updates.winner = winnerPlayer ? `${winnerPlayer.name} VINCE CON ${maxScore} TILES!` : "PAREGGIO!";
+                        playSound('win');
+                    } 
                     else { updates.round = newRound; if (currentRoom.gameMode === 'tiles') updates.lastAction = `ROUND ${newRound} DI ${currentRoom.maxRounds}!`; }
                 }
                 updates.currentTurn = nextTurn;
@@ -1363,7 +1370,7 @@ function App() {
                  }
             }
 
-            let activeSpecial = effectiveSpecials[finalPos];
+            let activeSpecial = getSpecialSafe(effectiveSpecials, finalPos);
             let specialIterations = 0;
             let extraTurns = 0;
 
@@ -1399,6 +1406,7 @@ function App() {
                     const sortedByPos = [...tempPlayers].filter(p => !p.isDead && !p.finished && (!activeSniper || p.uid !== freshRoom.sniperUid)).sort((a,b) => b.position - a.position); 
                     const myRankIdx = sortedByPos.findIndex(p => p.id === player.id); 
                     if (myRankIdx > 0) { const targetPlayer = sortedByPos[myRankIdx - 1]; finalPos = Math.max(0, targetPlayer.position - 1); } 
+                    else { finalPos = Math.min(config.max, finalPos + 2); log += " (Nessun bersaglio, +2!)"; }
                     tempPlayers[currentPlayerIdx].position = finalPos; 
                     playSound('step'); 
                 }
@@ -1417,15 +1425,14 @@ function App() {
                         if (others.length > 0) { 
                             const targetP = others[Math.floor(Math.random() * others.length)]; 
                             finalPos = targetP.position; 
-                            tempPlayers[currentPlayerIdx].position = finalPos; 
-                            
-                            // FIX: Copia Laps in Pressure mode
                             if (activePressure) {
                                 tempPlayers[currentPlayerIdx].laps = targetP.laps || 1;
                             }
-
                             playSound('teleport'); 
-                        } 
+                        } else {
+                            finalPos = Math.min(config.max, finalPos + 2); log += " (Solo, +2!)"; playSound('step');
+                        }
+                        tempPlayers[currentPlayerIdx].position = finalPos; 
                     } 
                 }
                 else if (activeSpecial.type === 'SWITCH') { 
@@ -1438,25 +1445,31 @@ function App() {
                             const targetIndex = tempPlayers.findIndex(p => p.id === targetP.id); 
                             const myPos = finalPos; 
                             const theirPos = targetP.position; 
-
-                            // FIX: Scambia Laps in Pressure mode
                             if (activePressure) {
                                 const myLaps = tempPlayers[currentPlayerIdx].laps || 1;
                                 const theirLaps = tempPlayers[targetIndex].laps || 1;
                                 tempPlayers[currentPlayerIdx].laps = theirLaps;
                                 tempPlayers[targetIndex].laps = myLaps;
                             }
-
                             tempPlayers[currentPlayerIdx].position = theirPos; 
                             tempPlayers[targetIndex].position = myPos; 
                             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers }); 
                             playSound('teleport'); 
                             finalPos = theirPos; 
-                        } 
+                        } else {
+                            finalPos = Math.min(config.max, finalPos + 2); log += " (Solo, +2!)"; tempPlayers[currentPlayerIdx].position = finalPos; playSound('step');
+                        }
                     } 
                 }
                 else if (activeSpecial.type === 'DECISION') {
-                     if (player.isBot) { const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)]; log += ` Scelta Bot: ${picked.name}!`; if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; } } 
+                     if (player.isBot) { 
+                         const picked = DECISION_POOL[Math.floor(Math.random() * DECISION_POOL.length)]; 
+                         log += ` Scelta Bot: ${picked.name}!`; 
+                         if (picked.id === 'turbo') { finalPos = Math.min(finalPos + 4, config.max); tempPlayers[currentPlayerIdx].position = finalPos; }
+                         else if (picked.id === 'leadership') { tempPlayers = tempPlayers.map(p => { if (p.isDead || p.finished) return p; let move = (p.id === player.id) ? 4 : 2; return { ...p, position: Math.min(p.position + move, config.max) }; }); finalPos = tempPlayers[currentPlayerIdx].position; }
+                         else if (picked.id === 'anchor') { tempPlayers = tempPlayers.map(p => { if (p.isDead || p.finished || p.id === player.id) return p; return { ...p, position: Math.max(0, p.position - 2) }; }); }
+                         else if (picked.id === 'gamble') { const win = Math.random() > 0.5; const val = win ? 6 : -3; finalPos = Math.max(0, Math.min(config.max, finalPos + val)); tempPlayers[currentPlayerIdx].position = finalPos; }
+                     } 
                      else { await sleep(500/botSpeed); const shuffled = [...DECISION_POOL].sort(() => 0.5 - Math.random()); setDecisionOptions(shuffled.slice(0, 3)); setDecisionMode(true); setTargetSelectionMode(null); tempPlayers[currentPlayerIdx].position = finalPos; tempPlayers[currentPlayerIdx].pendingTarget = null; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers, bossHp: tempBossHp, lastAction: `${player.name} sta scegliendo...` }); setIsMoving(false); return; }
                 }
                 else if (activeSpecial.type === 'CHALLENGE') {
@@ -1497,7 +1510,7 @@ function App() {
                      }
                 }
 
-                activeSpecial = effectiveSpecials[finalPos];
+                activeSpecial = getSpecialSafe(effectiveSpecials, finalPos);
                 
                 if (botSpeed <= 2) {
                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: tempPlayers });
@@ -1644,16 +1657,18 @@ function App() {
                                 updates.activeGlitch = selected;
                                 let glitchMsg = ""; if (selected === 'gravity') glitchMsg = "GRAVITÀ BASSA!"; if (selected === 'darkness') glitchMsg = "BUIO TOTALE!"; if (selected === 'earthquake') glitchMsg = "TERREMOTO!"; if (selected === 'swap') glitchMsg = "SCAMBIO POSIZIONI!"; if (selected === 'rewind') glitchMsg = "REWIND (-5)!"; if (selected === 'cursed') glitchMsg = "DADI MALEDETTI!"; if (selected === 'double_dice') glitchMsg = "DOPPI DADI!"; if (selected === 'random_lava') glitchMsg = "IL SUOLO È LAVA!"; if (selected === 'black_hole_spawn') glitchMsg = "SINGOLARITÀ!"; if (selected === 'punitive_round') glitchMsg = "COLLISIONI PUNITIVE!";
                                 updates.lastAction = `GLITCH ATTIVATO: ${glitchMsg}`; playSound('glitch');
-                                if (selected === 'earthquake') { tempPlayers = tempPlayers.map(p => { if(p.isDead || p.finished) return p; const shift = Math.floor(Math.random() * 7) - 3; return { ...p, position: Math.max(0, Math.min(60, p.position + shift)) }; }); updates.players = tempPlayers; } 
-                                else if (selected === 'rewind') { tempPlayers = tempPlayers.map(p => { if(p.isDead || p.finished) return p; return { ...p, position: Math.max(0, p.position - 5) }; }); updates.players = tempPlayers; } 
-                                else if (selected === 'swap') { const activeIndices = tempPlayers.map((p, i) => ({...p, idx: i})).filter(p => !p.isDead && !p.finished); if (activeIndices.length > 1) { const positions = activeIndices.map(p => p.position); const lastPos = positions.pop(); positions.unshift(lastPos); activeIndices.forEach((p, i) => { tempPlayers[p.idx].position = positions[i]; }); updates.players = tempPlayers; } } 
-                                else if (selected === 'random_lava') { let newLava = -1; const existingLava = freshRoom.lavaTiles || []; let attempts = 0; while((newLava === -1 || newLava === 0 || newLava === 60 || existingLava.includes(newLava)) && attempts < 100) { newLava = Math.floor(Math.random() * 59) + 1; attempts++; } if (newLava !== -1) { updates.lavaTiles = [...existingLava, newLava]; } } 
-                                else if (selected === 'black_hole_spawn') { const newBlackHolePos = (freshRoom.blackHolePos || 0) + 3; updates.blackHolePos = newBlackHolePos; tempPlayers = tempPlayers.map(p => { if (p.position <= newBlackHolePos && !p.finished && !p.isDead) { return { ...p, isDead: true, finished: true }; } return p; }); updates.players = tempPlayers; playSound('suck'); }
-                            } else { updates.activeGlitch = null; updates.lastAction = `ROUND ${updates.round}: Glitch Disattivato.`; }
+                            }
                         }
-                        if (activeInfection && updates.round > 3) { const infectionSteps = [2, 3, 5, 7, 8]; const roll = infectionSteps[Math.floor(Math.random() * infectionSteps.length)]; const oldNpcPos = freshRoom.infectedNPC.position; const newNpcPos = oldNpcPos + roll; updates['infectedNPC.position'] = newNpcPos; updates['infectedNPC.lastMovedRound'] = updates.round; let killCount = 0; tempPlayers = tempPlayers.map(p => { if (!p.isDead && !p.finished && p.position <= newNpcPos) { killCount++; return { ...p, isDead: true, position: 0 }; } return p; }); updates.players = tempPlayers; updates.lastAction = `ROUND ${updates.round}: Virus avanza di ${roll}! ${killCount > 0 ? killCount + ' presi!' : ''}`; playSound('zombie'); }
+                        if (activeInfection && updates.round > 3) { 
+                            const infectionSteps = [2, 3, 5, 7, 8]; const roll = infectionSteps[Math.floor(Math.random() * infectionSteps.length)]; const oldNpcPos = freshRoom.infectedNPC.position; const newNpcPos = oldNpcPos + roll; updates['infectedNPC.position'] = newNpcPos; updates['infectedNPC.lastMovedRound'] = updates.round; let killCount = 0; tempPlayers = tempPlayers.map(p => { if (!p.isDead && !p.finished && p.position <= newNpcPos) { killCount++; return { ...p, isDead: true, position: 0 }; } return p; }); updates.players = tempPlayers; updates.lastAction = `ROUND ${updates.round}: Virus avanza di ${roll}! ${killCount > 0 ? killCount + ' presi!' : ''}`; playSound('zombie'); 
+                            const living = tempPlayers.filter(p => !p.isDead);
+                            if (living.length === 0) { updates.status = 'finished'; updates.winner = "IL VIRUS HA VINTO! TUTTI INFETTI!"; }
+                            else if (living.length === 1 && tempPlayers.length > 1) { updates.status = 'finished'; updates.winner = `${living[0].name} È L'UNICO SOPRAVVISSUTO!`; }
+                        }
                     }
-                    updates.currentTurn = nextTurn;
+                    if (updates.status !== 'finished') {
+                        updates.currentTurn = getNextTurn(tempPlayers, currentPlayerIdx);
+                    }
                 }
             } else {
                 const nextTurn = getNextTurn(tempPlayers, currentPlayerIdx);
@@ -1878,6 +1893,12 @@ function App() {
                 return;
             }
 
+            if (player.isDead || player.finished) {
+                 if (freshRoom.hostId === user.uid) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { currentTurn: getNextTurn(freshRoom.players, playerIdx) }); }
+                 setIsRolling(false);
+                 return;
+            }
+
             if (isPawnLocked(player, freshRoom.players)) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { currentTurn: getNextTurn(freshRoom.players, playerIdx) }); return; }
             if (player.skipTurns > 0) { let updated = [...freshRoom.players]; updated[playerIdx].skipTurns -= 1; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { players: updated, currentTurn: getNextTurn(updated, playerIdx) }); return; }
 
@@ -1958,6 +1979,16 @@ function App() {
 
             const p = currentRoom.players[currentRoom.currentTurn];
             if (!p) return;
+
+            if (p.isDead || p.finished) {
+                if (currentRoom.hostId === user?.uid) {
+                    const nextTurn = getNextTurn(currentRoom.players, currentRoom.currentTurn);
+                    if (nextTurn !== currentRoom.currentTurn) {
+                        updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', roomCode), { currentTurn: nextTurn });
+                    }
+                }
+                return;
+            }
 
             const turnKey = `${currentRoom.currentTurn}-${p.uid}`;
 
@@ -2569,7 +2600,7 @@ function App() {
                                         key={i} 
                                         num={i} 
                                         players={currentRoom.players.filter(p => p.position === i && !p.isDead)} 
-                                        special={(currentRoom.gameMode === 'elimination' || (currentRoom.gameMode === 'custom' && (currentRoom.customConfig?.mapType === 'elimination' || currentRoom.customConfig?.elimination)) ? (currentRoom.customSpecials?.[i] || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' || currentRoom.customConfig?.reverse ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : (currentRoom.gameMode === 'hunter' ? HUNTER_MAP.specials[i] : CLASSIC_MAP.specials[i]))))))} 
+                                        special={(currentRoom.gameMode === 'elimination' || (currentRoom.gameMode === 'custom' && (currentRoom.customConfig?.mapType === 'elimination' || currentRoom.customConfig?.elimination)) ? (getSpecialSafe(currentRoom.customSpecials, i) || ELIM_MAP.specials[i]) : (currentRoom.gameMode === 'gem_hunt' ? GEM_MAP.specials[i] : (currentRoom.gameMode === 'tiles' || currentRoom.gameMode === 'coin_collector' || currentRoom.gameMode === 'brawl' ? null : (currentRoom.gameMode === 'reverse' || currentRoom.customConfig?.reverse ? REVERSE_MAP.specials[i] : (currentRoom.gameMode === 'battle_royale' ? BATTLE_ROYALE_MAP.specials[i] : (currentRoom.gameMode === 'hunter' ? HUNTER_MAP.specials[i] : CLASSIC_MAP.specials[i]))))))} 
                                         isElimination={currentRoom.gameMode === 'elimination'} 
                                         isBattleRoyale={currentRoom.gameMode === 'battle_royale'}
                                         isTournament={currentRoom.gameMode === 'tournament'}
